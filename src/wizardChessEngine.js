@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { wizardChessAudio } from './wizardChessAudio.ts';
 import { getTranslations, getLanguage, setLanguage as setI18nLanguage, subscribeLanguage } from './i18n.ts';
-import { insufficientMaterial as coreInsufficientMaterial, positionKey as corePositionKey } from './chess/rules.js';
+import { insufficientMaterial as coreInsufficientMaterial, positionKey as corePositionKey, legalMoves as coreLegalMoves, moveToSan as coreMoveToSan, squareName as coreSquareName } from './chess/rules.js';
 import { searchBestMove as coreSearchBestMove } from './chess/aiSearch.js';
 import { emitEngineEvent } from './engineBus.ts';
 import { parseNotationToMoves } from './chess/notation.js';
@@ -1954,57 +1954,6 @@ export function initWizardChess() {
     let enPassantTarget = null;
     const moveHistoryNotation = [];
 
-    function calculateSAN(piece, fromR, fromC, toR, toC, isCapture, isCastling, isEnPassant = false) {
-      if (isCastling) {
-        return toC > fromC ? 'O-O' : 'O-O-O';
-      }
-
-      const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-      const destSquare = `${files[toC]}${8 - toR}`;
-
-      if (piece.type === 'pawn') {
-        let san = (isCapture || isEnPassant) ? `${files[fromC]}x${destSquare}` : destSquare;
-        if (toR === 0 || toR === 7) {
-          san += '=Q';
-        }
-        return san;
-      }
-
-      const pieceLetters = { knight: 'N', bishop: 'B', rook: 'R', queen: 'Q', king: 'K' };
-      const pLetter = pieceLetters[piece.type] || '';
-
-      // Standard SAN Disambiguation (e.g. Nbd7, R1e2, Qh4e1)
-      let disambig = '';
-      if (piece.type !== 'king') {
-        const candidates = [];
-        for (let r = 0; r < 8; r++) {
-          for (let c = 0; c < 8; c++) {
-            if (r === fromR && c === fromC) continue;
-            const other = boardState[r][c];
-            if (other && other.color === piece.color && other.type === piece.type) {
-              const moves = getLegalMovesForPiece(r, c);
-              if (moves.some((m) => m.r === toR && m.c === toC)) {
-                candidates.push({ r, c });
-              }
-            }
-          }
-        }
-        if (candidates.length > 0) {
-          const sameFile = candidates.some((cand) => cand.c === fromC);
-          const sameRank = candidates.some((cand) => cand.r === fromR);
-          if (!sameFile) {
-            disambig = files[fromC];
-          } else if (!sameRank) {
-            disambig = String(8 - fromR);
-          } else {
-            disambig = `${files[fromC]}${8 - fromR}`;
-          }
-        }
-      }
-
-      return isCapture ? `${pLetter}${disambig}x${destSquare}` : `${pLetter}${disambig}${destSquare}`;
-    }
-
     function updateMoveHistoryDOM() {
       try {
         emitEngineEvent('historyChanged', { history: moveHistoryNotation.map(r => ({ ...r })) });
@@ -3945,6 +3894,10 @@ export function initWizardChess() {
       if (!piece || isAnimatingMove || gameOver) return false;
       if (piece.color !== currentTurn) return false;
 
+      // Pre-move snapshot of the core state — used for SAN generation after
+      // the board has been mutated by the animation callback.
+      const coreStateBefore = buildCoreState(currentTurn);
+
       const targetOnDest = boardState[toR]?.[toC];
       // Strictly forbid friendly fire (a piece can never move onto or attack a piece of the same color)
       if (targetOnDest && targetOnDest.color === piece.color) {
@@ -4440,15 +4393,23 @@ export function initWizardChess() {
         }
 
         const nextTurn = piece.color === 'w' ? 'b' : 'w';
-        let san = calculateSAN(piece, fromR, fromC, toR, toC, isCapture, isCastling, isEnPassant);
-        const oppInCheck = isKingInCheck(nextTurn, boardState);
-        if (oppInCheck) {
-          const oppLegals = getAllLegalMoves(nextTurn);
-          if (oppLegals.length === 0) {
-            san += '#';
-          } else {
-            san += '+';
+        // SAN comes from the pure rules core — single source of truth for
+        // disambiguation, promotions, castling and +/# suffixes.
+        let san = null;
+        if (coreStateBefore) {
+          const coreMove = coreLegalMoves(coreStateBefore).find((m) =>
+            m.from.r === fromR && m.from.c === fromC &&
+            m.to.r === toR && m.to.c === toC &&
+            (!m.promotion || m.promotion === 'q')
+          );
+          if (coreMove) {
+            san = coreMoveToSan(coreStateBefore, coreMove);
           }
+        }
+        if (!san) {
+          // Defensive fallback (should not happen for legal moves): coordinate notation
+          const sanFiles = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+          san = `${sanFiles[fromC]}${8 - fromR}${isCapture ? 'x' : ''}${sanFiles[toC]}${8 - toR}`;
         }
         if (moveHistory.length > 0) {
           const curEntry = moveHistory[moveHistory.length - 1];
