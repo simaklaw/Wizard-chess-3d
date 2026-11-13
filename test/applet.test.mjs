@@ -238,7 +238,7 @@ test('Collapsible Move History panel in bottom-right and Undo Move functionality
   assert.ok(stylesCss.includes('#btn-undo'), 'styles.css must style #btn-undo');
 
   // 3. Engine Implementation
-  assert.ok(engineJs.includes('calculateSAN('), 'engine must implement calculateSAN');
+  assert.ok(engineJs.includes('coreMoveToSan('), 'engine must generate SAN via the pure rules core (coreMoveToSan)');
   assert.ok(engineJs.includes('recordMoveNotation('), 'engine must implement recordMoveNotation');
   assert.ok(engineJs.includes('updateMoveHistoryDOM('), 'engine must implement updateMoveHistoryDOM');
   assert.ok(engineJs.includes('undoChessMove('), 'engine must implement undoChessMove');
@@ -301,9 +301,11 @@ test('En Passant, Pawn Promotion, and Disambiguated Algebraic Notation are verif
     'rules core must generate all four promotion choices (q/r/b/n) for the AI search'
   );
 
-  // 3. Disambiguated SAN
-  assert.ok(engineJs.includes('// Standard SAN Disambiguation'), 'calculateSAN must implement standard algebraic disambiguation');
-  assert.ok(engineJs.includes('disambig = files[fromC]'), 'calculateSAN must disambiguate by file when files differ');
+  // 3. Disambiguated SAN (single source of truth: rules core)
+  assert.ok(rulesJs.includes('export function moveToSan('), 'rules core must implement SAN generation (moveToSan)');
+  assert.ok(rulesJs.includes('disambig'), 'moveToSan must disambiguate ambiguous moves');
+  assert.ok(rulesJs.includes("'#'"), 'moveToSan must suffix checkmate');
+  assert.ok(engineJs.includes('coreMoveToSan(coreStateBefore, coreMove)'), 'engine must delegate SAN to the rules core');
 });
 
 test('Gothic Stone Board Textures (Polished Obsidian, Weathered Abbey, Mossy Ruin) and King Threat Aura with Ascending Embers are verified', () => {
