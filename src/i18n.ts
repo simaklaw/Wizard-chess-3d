@@ -11,6 +11,9 @@ export interface Translations {
   checkmateWhiteWins: string;
   checkmateBlackWins: string;
   stalemateDraw: string;
+  drawInsufficientMaterial: string;
+  drawFiftyMoveRule: string;
+  drawThreefoldRepetition: string;
   playingAsWhite: string;
   playingAsBlack: string;
   btnPlayAsWhite: string;
@@ -125,6 +128,9 @@ export const translations: Record<Language, Translations> = {
     checkmateWhiteWins: 'Checkmate — White Wins',
     checkmateBlackWins: 'Checkmate — Black Wins',
     stalemateDraw: 'Stalemate — Draw',
+    drawInsufficientMaterial: 'Draw — Insufficient Material',
+    drawFiftyMoveRule: 'Draw — Fifty-Move Rule',
+    drawThreefoldRepetition: 'Draw — Threefold Repetition',
     playingAsWhite: 'Playing as White',
     playingAsBlack: 'Playing as Black',
     btnPlayAsWhite: 'Play as White',
@@ -227,6 +233,9 @@ export const translations: Record<Language, Translations> = {
     checkmateWhiteWins: 'Мат — Победа белых',
     checkmateBlackWins: 'Мат — Победа чёрных',
     stalemateDraw: 'Пат — Ничья',
+    drawInsufficientMaterial: 'Ничья — недостаточный материал',
+    drawFiftyMoveRule: 'Ничья — правило 50 ходов',
+    drawThreefoldRepetition: 'Ничья — троекратное повторение',
     playingAsWhite: 'Игра за белых',
     playingAsBlack: 'Игра за чёрных',
     btnPlayAsWhite: 'Играть за белых',

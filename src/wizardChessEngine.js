@@ -4,6 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { wizardChessAudio } from './wizardChessAudio.ts';
 import { getTranslations, getLanguage, setLanguage as setI18nLanguage, subscribeLanguage } from './i18n.ts';
+import { insufficientMaterial as coreInsufficientMaterial, positionKey as corePositionKey } from './chess/rules.js';
 
 /** @type {any} */
 const THREE = THREE_NS;
@@ -2220,6 +2221,57 @@ export function initWizardChess() {
       return true;
     }
 
+    // =========================================================================
+    // Draw Rules: Threefold Repetition, Fifty-Move Rule, Insufficient Material
+    // (backed by the pure rules core in src/chess/rules.js)
+    // =========================================================================
+    let repetitionCounts = {};
+
+    const ENGINE_TYPE_TO_CORE = { pawn: 'p', knight: 'n', bishop: 'b', rook: 'r', queen: 'q', king: 'k' };
+
+    function toCoreBoard() {
+      return boardState.map((row) => row.map((p) => (p ? { type: ENGINE_TYPE_TO_CORE[p.type], color: p.color } : null)));
+    }
+
+    function buildCoreState(turn = currentTurn) {
+      const castling = { w: {}, b: {} };
+      for (const color of ['w', 'b']) {
+        const home = color === 'w' ? 7 : 0;
+        for (let c = 0; c < 8; c++) {
+          const p = boardState[home][c];
+          if (p && !p.hasMoved && (p.type === 'k' || p.type === 'r')) {
+            castling[color][c] = true;
+          }
+        }
+      }
+      return {
+        board: toCoreBoard(),
+        turn,
+        castling,
+        ep: enPassantTarget ? { r: enPassantTarget.r, c: enPassantTarget.c } : null
+      };
+    }
+
+    function getHalfmoveClock() {
+      let n = 0;
+      for (let i = moveHistory.length - 1; i >= 0; i--) {
+        const m = moveHistory[i] && moveHistory[i].move;
+        if (!m) break;
+        if (m.pieceType === 'pawn' || m.capture) break;
+        n++;
+      }
+      return n;
+    }
+
+    function getDrawMessage() {
+      const t = getTranslations();
+      if (coreInsufficientMaterial({ board: toCoreBoard() })) return t.drawInsufficientMaterial;
+      if (getHalfmoveClock() >= 100) return t.drawFiftyMoveRule;
+      const key = corePositionKey(buildCoreState());
+      if ((repetitionCounts[key] || 0) >= 3) return t.drawThreefoldRepetition;
+      return null;
+    }
+
     function undoChessMove() {
       if (previewingPly !== null) {
         returnToLiveGame();
@@ -2241,6 +2293,9 @@ export function initWizardChess() {
         if (moveHistory.length === 0) break;
         const popped = moveHistory.pop();
         targetSnapshot = popped.snapshot;
+        if (popped.positionKeyAfter) {
+          repetitionCounts[popped.positionKeyAfter] = Math.max(0, (repetitionCounts[popped.positionKeyAfter] || 1) - 1);
+        }
 
         if (moveHistoryNotation.length > 0) {
           const lastRow = moveHistoryNotation[moveHistoryNotation.length - 1];
@@ -2254,6 +2309,10 @@ export function initWizardChess() {
 
       if (targetSnapshot) {
         restoreBoardSnapshot(targetSnapshot);
+        if (gameOver) {
+          gameOver = false;
+          clearCheckmateSequence();
+        }
         if (moveHistory.length > 0) {
           const lastEntry = moveHistory[moveHistory.length - 1];
           if (lastEntry && lastEntry.move) {
@@ -2643,6 +2702,10 @@ export function initWizardChess() {
         boardState[1][c] = instantiatePiece('pawn', 'b', 1, c);
         boardState[0][c] = instantiatePiece(backRow[c], 'b', 0, c);
       }
+
+      repetitionCounts = {};
+      const initialPositionKey = corePositionKey(buildCoreState('w'));
+      repetitionCounts[initialPositionKey] = 1;
 
       if (orientCamera) {
         const viewSide = playerColor === 'b' ? 'b' : 'w';
@@ -4401,6 +4464,8 @@ export function initWizardChess() {
           const curEntry = moveHistory[moveHistory.length - 1];
           curEntry.san = san;
           curEntry.snapshotAfter = captureBoardSnapshot();
+          curEntry.positionKeyAfter = corePositionKey(buildCoreState(nextTurn));
+          repetitionCounts[curEntry.positionKeyAfter] = (repetitionCounts[curEntry.positionKeyAfter] || 0) + 1;
         }
         updateLastMoveHighlight(fromR, fromC, toR, toC);
         recordMoveNotation(piece.color, san, fromR, fromC, toR, toC);
@@ -5898,7 +5963,12 @@ export function initWizardChess() {
       const legalMoves = getAllLegalMoves(currentTurn);
       const inCheck = isKingInCheck(currentTurn, boardState);
 
-      if (legalMoves.length === 0) {
+      const drawMessage = legalMoves.length > 0 ? getDrawMessage() : null;
+      if (drawMessage) {
+        gameOver = true;
+        isClockRunning = false;
+        turnText.textContent = drawMessage;
+      } else if (legalMoves.length === 0) {
         gameOver = true;
         if (inCheck) {
           const winnerStr = currentTurn === 'w' ? t.checkmateBlackWins : t.checkmateWhiteWins;
@@ -7504,3 +7574,4 @@ export function initWizardChess() {
       }
     })();
 }
+
