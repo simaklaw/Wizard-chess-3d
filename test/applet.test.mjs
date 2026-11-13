@@ -193,8 +193,11 @@ test('Glowing crimson laser threat indicator, chess clocks for all disciplines, 
   assert.ok(appTsx.includes('id="clock-time-b"'), 'App.tsx must include #clock-time-b');
   assert.ok(stylesCss.includes('.chess-clock-pill'), 'styles.css must style .chess-clock-pill');
   assert.ok(stylesCss.includes('.clock-box.critical'), 'styles.css must have critical pulsing low-time state');
-  assert.ok(engineJs.includes('TIME_CONTROLS'), 'engine must define TIME_CONTROLS dictionary');
-  assert.ok(engineJs.includes('bullet_1_0') && engineJs.includes('blitz_5_3') && engineJs.includes('rapid_10_0') && engineJs.includes('classical_60_0'), 'engine must cover bullet, blitz, rapid, and classical disciplines');
+  const timeControlsJs = fs.readFileSync(path.join(ROOT, 'src/chess/timeControls.js'), 'utf-8');
+  assert.ok(timeControlsJs.includes('TIME_CONTROLS'), 'timeControls module must define TIME_CONTROLS dictionary');
+  assert.ok(timeControlsJs.includes('formatClockTime'), 'timeControls module must implement formatClockTime');
+  assert.ok(timeControlsJs.includes('bullet_1_0') && timeControlsJs.includes('blitz_5_3') && timeControlsJs.includes('rapid_10_0') && timeControlsJs.includes('classical_60_0'), 'timeControls module must cover bullet, blitz, rapid, and classical disciplines');
+  assert.ok(engineJs.includes("from './chess/timeControls.js'"), 'engine must import TIME_CONTROLS from the pure module');
   assert.ok(engineJs.includes('stepChessClocks('), 'engine must implement stepChessClocks in loop');
   assert.ok(engineJs.includes('triggerTimeoutVictory('), 'engine must implement flag fall timeout victory');
 
