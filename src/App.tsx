@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { initWizardChess } from './wizardChessEngine.js';
+import { onEngineEvent, type WizardChessApi } from './engineBus.ts';
 import {
   getLanguage,
   setLanguage,
@@ -16,6 +17,7 @@ interface MoveRow {
 
 export default function App() {
   const initializedRef = useRef(false);
+  const wizardChessRef = useRef<WizardChessApi | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [historyExpanded, setHistoryExpanded] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -42,101 +44,69 @@ export default function App() {
   useEffect(() => {
     if (initializedRef.current) return;
     initializedRef.current = true;
-    initWizardChess();
-    const win = window as unknown as {
-      wizardChess?: {
-        isSoundEnabled?: () => boolean;
-        getBoardStoneTexture?: () => string;
-        getMoveHistoryNotation?: () => MoveRow[];
-      };
-    };
-    if (win.wizardChess?.isSoundEnabled) {
-      setSoundEnabled(win.wizardChess.isSoundEnabled());
+    // The engine returns its typed API handle; window.wizardChess stays as a
+    // legacy alias for automated tests.
+    wizardChessRef.current = (initWizardChess() as WizardChessApi) || null;
+    const api = wizardChessRef.current;
+    if (api?.isSoundEnabled) {
+      setSoundEnabled(api.isSoundEnabled());
     }
-    if (win.wizardChess?.getBoardStoneTexture) {
-      setBoardStone(win.wizardChess.getBoardStoneTexture());
+    if (api?.getBoardStoneTexture) {
+      setBoardStone(api.getBoardStoneTexture());
     }
-    if (win.wizardChess?.getMoveHistoryNotation) {
-      setHistoryList(win.wizardChess.getMoveHistoryNotation());
+    if (api?.getMoveHistoryNotation) {
+      setHistoryList(api.getMoveHistoryNotation());
     }
   }, []);
 
   useEffect(() => {
-    const handleStoneEvent = (e: Event) => {
-      const customEvent = e as CustomEvent<{ texture: string }>;
-      if (customEvent.detail?.texture) {
-        setBoardStone(customEvent.detail.texture);
+    return onEngineEvent('boardStoneChanged', (payload) => {
+      if (payload.texture) {
+        setBoardStone(payload.texture);
       }
-    };
-    window.addEventListener('wizardChessBoardStoneChanged', handleStoneEvent);
-    return () => {
-      window.removeEventListener('wizardChessBoardStoneChanged', handleStoneEvent);
-    };
+    });
   }, []);
 
   useEffect(() => {
-    const handleHistoryEvent = (e: Event) => {
-      const customEvent = e as CustomEvent<{ history?: MoveRow[] }>;
-      if (customEvent.detail?.history) {
-        setHistoryList([...customEvent.detail.history]);
+    return onEngineEvent('historyChanged', (payload) => {
+      if (payload.history) {
+        setHistoryList([...payload.history]);
       } else {
-        const win = window as unknown as {
-          wizardChess?: {
-            getMoveHistoryNotation?: () => MoveRow[];
-          };
-        };
-        if (win.wizardChess?.getMoveHistoryNotation) {
-          setHistoryList(win.wizardChess.getMoveHistoryNotation());
+        const api = wizardChessRef.current;
+        if (api?.getMoveHistoryNotation) {
+          setHistoryList(api.getMoveHistoryNotation());
         }
       }
-    };
-    window.addEventListener('wizardChessHistoryChanged', handleHistoryEvent);
-    return () => {
-      window.removeEventListener('wizardChessHistoryChanged', handleHistoryEvent);
-    };
+    });
   }, []);
 
   useEffect(() => {
-    const handlePreviewEvent = (e: Event) => {
-      const customEvent = e as CustomEvent<{ previewingPly: number | null }>;
-      setPreviewPly(customEvent.detail?.previewingPly ?? null);
-    };
-    window.addEventListener('wizardChessPreviewChanged', handlePreviewEvent);
-    return () => {
-      window.removeEventListener('wizardChessPreviewChanged', handlePreviewEvent);
-    };
+    return onEngineEvent('previewChanged', (payload) => {
+      setPreviewPly(payload.previewingPly ?? null);
+    });
   }, []);
 
   useEffect(() => {
-    const handleTourStarted = () => setIsTourActive(true);
-    const handleTourFinished = (e: Event) => {
+    const unsubStarted = onEngineEvent('tourStarted', () => setIsTourActive(true));
+    const unsubFinished = onEngineEvent('tourFinished', (payload) => {
       setIsTourActive(false);
-      const customEvent = e as CustomEvent<{ openMenu?: boolean; immediate?: boolean }>;
-      if (customEvent?.detail?.openMenu) {
+      if (payload.openMenu) {
         setDrawerOpen(true);
       }
-    };
-
-    window.addEventListener('wizardChessTourStarted', handleTourStarted);
-    window.addEventListener('wizardChessTourFinished', handleTourFinished);
+    });
     return () => {
-      window.removeEventListener('wizardChessTourStarted', handleTourStarted);
-      window.removeEventListener('wizardChessTourFinished', handleTourFinished);
+      unsubStarted();
+      unsubFinished();
     };
   }, []);
 
   useEffect(() => {
     if (drawerOpen) {
-      const win = window as unknown as {
-        wizardChess?: {
-          getMoveHistoryNotation?: () => MoveRow[];
-          updateMoveHistoryDOM?: () => void;
-        };
-      };
-      if (win.wizardChess?.getMoveHistoryNotation) {
-        setHistoryList(win.wizardChess.getMoveHistoryNotation());
+      const api = wizardChessRef.current;
+      if (api?.getMoveHistoryNotation) {
+        setHistoryList(api.getMoveHistoryNotation());
       }
-      win.wizardChess?.updateMoveHistoryDOM?.();
+      api?.updateMoveHistoryDOM?.();
     }
   }, [drawerOpen]);
 
@@ -148,116 +118,65 @@ export default function App() {
 
   const handleSetBoardStone = (styleId: string) => {
     setBoardStone(styleId);
-    const win = window as unknown as {
-      wizardChess?: {
-        setBoardStoneTexture?: (s: string) => string;
-      };
-    };
-    win.wizardChess?.setBoardStoneTexture?.(styleId);
+    wizardChessRef.current?.setBoardStoneTexture?.(styleId);
   };
 
   const handleSetTimeControl = (val: string) => {
     setTimeControl(val);
-    const sel = document.getElementById('select-time-control') as HTMLSelectElement | null;
-    if (sel) {
-      sel.value = val;
-      sel.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-    const win = window as unknown as { wizardChess?: { setTimeControl?: (t: string) => void } };
-    win.wizardChess?.setTimeControl?.(val);
+    wizardChessRef.current?.setTimeControl?.(val);
   };
 
   const handleSetDifficulty = (val: string) => {
     setAiDifficulty(val);
-    const sel = document.getElementById('select-ai-difficulty') as HTMLSelectElement | null;
-    if (sel) {
-      sel.value = val;
-      sel.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-    const win = window as unknown as { wizardChess?: { setDifficulty?: (d: string) => void } };
-    win.wizardChess?.setDifficulty?.(val);
+    wizardChessRef.current?.setDifficulty?.(val);
   };
 
   const handleSetVariant = (val: string) => {
     setGameVariant(val);
-    const sel = document.getElementById('select-game-variant') as HTMLSelectElement | null;
-    if (sel) {
-      sel.value = val;
-      sel.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-    const win = window as unknown as { wizardChess?: { setVariant?: (v: string) => void } };
-    win.wizardChess?.setVariant?.(val);
+    wizardChessRef.current?.setVariant?.(val);
   };
 
   const handleToggleLanguage = () => {
     const nextLang: Language = lang === 'ru' ? 'en' : 'ru';
     setLang(nextLang);
     setLanguage(nextLang);
-    const win = window as unknown as { wizardChess?: { setLanguage?: (l: Language) => void } };
-    win.wizardChess?.setLanguage?.(nextLang);
+    wizardChessRef.current?.setLanguage?.(nextLang);
   };
 
   const handleToggleSound = () => {
-    const win = window as unknown as { wizardChess?: { toggleSound?: () => boolean } };
-    if (win.wizardChess?.toggleSound) {
-      const next = win.wizardChess.toggleSound();
-      setSoundEnabled(next);
+    const api = wizardChessRef.current;
+    if (api?.toggleSound) {
+      setSoundEnabled(api.toggleSound());
     } else {
       setSoundEnabled((prev) => !prev);
     }
   };
 
   const handleZoomIn = () => {
-    const win = window as unknown as { wizardChess?: { zoomIn?: () => void } };
-    if (win.wizardChess?.zoomIn) {
-      win.wizardChess.zoomIn();
-    }
+    wizardChessRef.current?.zoomIn?.();
   };
 
   const handlePreviewPly = (plyIdx: number) => {
-    const win = window as unknown as {
-      wizardChess?: {
-        previewHistoryPly?: (idx: number) => boolean;
-      };
-    };
-    win.wizardChess?.previewHistoryPly?.(plyIdx);
+    wizardChessRef.current?.previewHistoryPly?.(plyIdx);
   };
 
   const handleReturnToLive = () => {
-    const win = window as unknown as {
-      wizardChess?: {
-        returnToLiveGame?: () => boolean;
-      };
-    };
-    win.wizardChess?.returnToLiveGame?.();
+    wizardChessRef.current?.returnToLiveGame?.();
   };
 
   const handleZoomOut = () => {
-    const win = window as unknown as { wizardChess?: { zoomOut?: () => void } };
-    if (win.wizardChess?.zoomOut) {
-      win.wizardChess.zoomOut();
-    }
+    wizardChessRef.current?.zoomOut?.();
   };
 
   const handleSkipTour = () => {
-    const win = window as unknown as {
-      wizardChess?: {
-        endCathedralTour?: (immediate?: boolean) => void;
-      };
-    };
-    win.wizardChess?.endCathedralTour?.(true);
+    wizardChessRef.current?.endCathedralTour?.(true);
     setIsTourActive(false);
     setDrawerOpen(true);
   };
 
   const handleStartTour = () => {
     setDrawerOpen(false);
-    const win = window as unknown as {
-      wizardChess?: {
-        startCathedralTour?: () => boolean;
-      };
-    };
-    win.wizardChess?.startCathedralTour?.();
+    wizardChessRef.current?.startCathedralTour?.();
   };
 
   useEffect(() => {
@@ -277,9 +196,9 @@ export default function App() {
   }, [isTourActive]);
 
   const handleRestoreUI = () => {
-    const win = window as unknown as { wizardChess?: { toggleUI?: (force?: boolean) => void } };
-    if (win.wizardChess?.toggleUI) {
-      win.wizardChess.toggleUI(false);
+    const api = wizardChessRef.current;
+    if (api?.toggleUI) {
+      api.toggleUI(false);
     } else {
       document.body.classList.remove('cinematic-ui-hidden');
       const btnHide = document.getElementById('btn-hide-ui');

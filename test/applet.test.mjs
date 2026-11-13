@@ -209,8 +209,12 @@ test('Glowing crimson laser threat indicator, chess clocks for all disciplines, 
     assert.ok(appTsx.includes(`value="${diff}"`), `App.tsx must support difficulty option ${diff}`);
     assert.ok(i18nTs.includes(diff) || i18nTs.includes(`diff${diff[0].toUpperCase()}${diff.slice(1)}`), `i18n.ts must define localization for ${diff}`);
   }
-  assert.ok(engineJs.includes('PAWN_TABLE') && engineJs.includes('KNIGHT_TABLE'), 'engine must include piece-square positional tables for AI');
-  assert.ok(engineJs.includes('minimaxAlphaBeta('), 'engine must implement minimax with alpha-beta pruning for high AI tiers');
+  const aiSearchJs = fs.readFileSync(path.join(ROOT, 'src/chess/aiSearch.js'), 'utf-8');
+  assert.ok(aiSearchJs.includes('PAWN_TABLE') && aiSearchJs.includes('KNIGHT_TABLE'), 'AI search module must include piece-square positional tables for AI');
+  assert.ok(aiSearchJs.includes('negamax'), 'AI search module must implement negamax with alpha-beta pruning for high AI tiers');
+  assert.ok(aiSearchJs.includes('quiescence'), 'AI search module must implement quiescence search (no horizon blunders)');
+  assert.ok(aiSearchJs.includes('moveOrderScore'), 'AI search module must implement MVV-LVA move ordering');
+  assert.ok(engineJs.includes('coreSearchBestMove'), 'engine must delegate AI search to the pure core module');
 });
 
 test('Collapsible Move History panel in bottom-right and Undo Move functionality (2-ply vs AI rollback) are fully implemented', () => {
@@ -254,6 +258,7 @@ test('Collapsible Move History panel in bottom-right and Undo Move functionality
 
 test('Bug Fixes: doesPieceAttackSquare enforces diagonal pawn attacks (eliminating false checks/checkmates) and positional score rewards pawn advance', () => {
   const engineJs = fs.readFileSync(path.join(ROOT, 'src/wizardChessEngine.js'), 'utf-8');
+  const aiSearchJs = fs.readFileSync(path.join(ROOT, 'src/chess/aiSearch.js'), 'utf-8');
 
   // 1. Raycasting doesPieceAttackSquare strictly enforces diagonal capture for pawns
   assert.ok(engineJs.includes('function doesPieceAttackSquare('), 'engine must define doesPieceAttackSquare');
@@ -265,14 +270,15 @@ test('Bug Fixes: doesPieceAttackSquare enforces diagonal pawn attacks (eliminati
 
   // 2. Positional table score row indexing fixed for pawns
   assert.ok(
-    engineJs.includes("const tableRow = color === 'w' ? r : (7 - r);"),
+    aiSearchJs.includes("const tableRow = p.color === 'w' ? r : (7 - r);"),
     'Pawn positional table row mapping must correctly reward advancing pawns toward center and rank 4/5'
   );
 
-  // 3. AI move search hanging check uses doesPieceAttackSquare rather than getPseudoMovesForPiece
+  // 3. Hanging-piece tactics are resolved by quiescence search in the pure AI
+  // module rather than the old one-ply doesPieceAttackSquare heuristic
   assert.ok(
-    engineJs.includes('doesPieceAttackSquare(opp, rr, cc, m.toR, m.toC, boardState)'),
-    'chooseSmartAIMove must use doesPieceAttackSquare to evaluate hanging squares without falsely penalizing pawn files'
+    aiSearchJs.includes('function quiescence('),
+    'AI search must resolve hanging squares via quiescence search without falsely penalizing pawn files'
   );
 });
 
@@ -289,7 +295,11 @@ test('En Passant, Pawn Promotion, and Disambiguated Algebraic Notation are verif
   // 2. Pawn Promotion
   assert.ok(engineJs.includes("piece.type === 'pawn' && (toR === 0 || toR === 7)"), 'finishMove must detect pawn promotion');
   assert.ok(engineJs.includes("instantiatePiece('queen', piece.color, toR, toC)"), 'finishMove must promote pawn to queen');
-  assert.ok(engineJs.includes("isPromo = piece.type === 'pawn' && (m.toR === 0 || m.toR === 7)"), 'minimax search must simulate pawn promotion to queen');
+  const rulesJs = fs.readFileSync(path.join(ROOT, 'src/chess/rules.js'), 'utf-8');
+  assert.ok(
+    rulesJs.includes("for (const promo of ['q', 'r', 'b', 'n'])"),
+    'rules core must generate all four promotion choices (q/r/b/n) for the AI search'
+  );
 
   // 3. Disambiguated SAN
   assert.ok(engineJs.includes('// Standard SAN Disambiguation'), 'calculateSAN must implement standard algebraic disambiguation');
