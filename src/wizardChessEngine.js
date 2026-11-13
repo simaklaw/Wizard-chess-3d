@@ -5,6 +5,7 @@ import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.j
 import { wizardChessAudio } from './wizardChessAudio.ts';
 import { getTranslations, getLanguage, setLanguage as setI18nLanguage, subscribeLanguage } from './i18n.ts';
 import { insufficientMaterial as coreInsufficientMaterial, positionKey as corePositionKey } from './chess/rules.js';
+import { searchBestMove as coreSearchBestMove } from './chess/aiSearch.js';
 
 /** @type {any} */
 const THREE = THREE_NS;
@@ -15,7 +16,6 @@ export function initWizardChess() {
     // Constants & Board Coordinates
     // =========================================================================
     const PIECE_TYPES = ['pawn', 'rook', 'knight', 'bishop', 'queen', 'king'];
-    const PIECE_VALUES = { pawn: 100, knight: 320, bishop: 330, rook: 500, queen: 900, king: 20000 };
     const BOARD_SQ_SIZE = 0.34;
     const BOARD_SURFACE_Y = 0.775;
 
@@ -4791,188 +4791,53 @@ export function initWizardChess() {
     // =========================================================================
     // Single-Player Tactical AI (Auto-Plays Opponent Turn + Manual AI Button)
     // =========================================================================
+
     // =========================================================================
     // Multi-Tiered AI Engine (Novice to Legend)
     // =========================================================================
+    // The search itself (negamax alpha-beta + quiescence + MVV-LVA) lives in
+    // src/chess/aiSearch.js — pure, unit-tested, and shared with the Web
+    // Worker. This block only maps engine state <-> core state and routes
+    // requests: worker first, main-thread core search as fallback.
     let currentDifficulty = 'intermediate'; // 'novice' | 'beginner' | 'intermediate' | 'advanced' | 'master' | 'legend'
 
-    const PAWN_TABLE = [
-      [ 0,  0,  0,  0,  0,  0,  0,  0],
-      [50, 50, 50, 50, 50, 50, 50, 50],
-      [10, 10, 20, 30, 30, 20, 10, 10],
-      [ 5,  5, 10, 25, 25, 10,  5,  5],
-      [ 0,  0,  0, 20, 20,  0,  0,  0],
-      [ 5, -5,-10,  0,  0,-10, -5,  5],
-      [ 5, 10, 10,-20,-20, 10, 10,  5],
-      [ 0,  0,  0,  0,  0,  0,  0,  0]
-    ];
-
-    const KNIGHT_TABLE = [
-      [-50,-40,-30,-30,-30,-30,-40,-50],
-      [-40,-20,  0,  0,  0,  0,-20,-40],
-      [-30,  0, 10, 15, 15, 10,  0,-30],
-      [-30,  5, 15, 20, 20, 15,  5,-30],
-      [-30,  0, 15, 20, 20, 15,  0,-30],
-      [-30,  5, 10, 15, 15, 10,  5,-30],
-      [-40,-20,  0,  5,  5,  0,-20,-40],
-      [-50,-40,-30,-30,-30,-30,-40,-50]
-    ];
-
-    const BISHOP_TABLE = [
-      [-20,-10,-10,-10,-10,-10,-10,-20],
-      [-10,  0,  0,  0,  0,  0,  0,-10],
-      [-10,  0,  5, 10, 10,  5,  0,-10],
-      [-10,  5,  5, 10, 10,  5,  5,-10],
-      [-10,  0, 10, 10, 10, 10,  0,-10],
-      [-10, 10, 10, 10, 10, 10, 10,-10],
-      [-10,  5,  0,  0,  0,  0,  5,-10],
-      [-20,-10,-10,-10,-10,-10,-10,-20]
-    ];
-
-    const ROOK_TABLE = [
-      [ 0,  0,  0,  0,  0,  0,  0,  0],
-      [ 5, 10, 10, 10, 10, 10, 10,  5],
-      [-5,  0,  0,  0,  0,  0,  0, -5],
-      [-5,  0,  0,  0,  0,  0,  0, -5],
-      [-5,  0,  0,  0,  0,  0,  0, -5],
-      [-5,  0,  0,  0,  0,  0,  0, -5],
-      [-5,  0,  0,  0,  0,  0,  0, -5],
-      [ 0,  0,  0,  5,  5,  0,  0,  0]
-    ];
-
-    const QUEEN_TABLE = [
-      [-20,-10,-10, -5, -5,-10,-10,-20],
-      [-10,  0,  0,  0,  0,  0,  0,-10],
-      [-10,  0,  5,  5,  5,  5,  0,-10],
-      [ -5,  0,  5,  5,  5,  5,  0, -5],
-      [  0,  0,  5,  5,  5,  5,  0, -5],
-      [-10,  5,  5,  5,  5,  5,  0,-10],
-      [-10,  0,  5,  0,  0,  0,  0,-10],
-      [-20,-10,-10, -5, -5,-10,-10,-20]
-    ];
-
-    function getPiecePositionalScore(type, color, r, c) {
-      const tableRow = color === 'w' ? r : (7 - r);
-      const tableCol = c;
-      if (type === 'pawn') return PAWN_TABLE[tableRow][tableCol];
-      if (type === 'knight') return KNIGHT_TABLE[tableRow][tableCol];
-      if (type === 'bishop') return BISHOP_TABLE[tableRow][tableCol];
-      if (type === 'rook') return ROOK_TABLE[tableRow][tableCol];
-      if (type === 'queen') return QUEEN_TABLE[tableRow][tableCol];
-      return 0;
+    function getAiSearchProfile() {
+      switch (currentDifficulty) {
+        case 'beginner': return { depth: 1, jitter: 32 };
+        case 'intermediate': return { depth: 2, jitter: 10 };
+        case 'advanced': return { depth: 3, jitter: 3 };
+        case 'master': return { depth: 3, jitter: 0 };
+        case 'legend': return { depth: 4, jitter: 0 };
+        default: return { depth: 2, jitter: 10 };
+      }
     }
 
-    function evaluateStaticBoard(board, perspectiveColor) {
-      let whiteScore = 0;
-      let blackScore = 0;
-      let kingR = { w: -1, b: -1 };
-      let kingC = { w: -1, b: -1 };
-
-      for (let r = 0; r < 8; r++) {
-        for (let c = 0; c < 8; c++) {
-          const p = board[r][c];
-          if (!p) continue;
-          const val = PIECE_VALUES[p.type] + getPiecePositionalScore(p.type, p.color, r, c);
-          if (p.color === 'w') {
-            whiteScore += val;
-            if (p.type === 'king') { kingR.w = r; kingC.w = c; }
-          } else {
-            blackScore += val;
-            if (p.type === 'king') { kingR.b = r; kingC.b = c; }
-          }
-        }
-      }
-
-      // Check threat bonuses
-      if (kingR.b !== -1 && isKingInCheck('b', board)) whiteScore += 45;
-      if (kingR.w !== -1 && isKingInCheck('w', board)) blackScore += 45;
-
-      return perspectiveColor === 'w' ? (whiteScore - blackScore) : (blackScore - whiteScore);
+    function coreMoveToEngineMove(coreMove) {
+      if (!coreMove) return null;
+      return {
+        fromR: coreMove.from.r,
+        fromC: coreMove.from.c,
+        toR: coreMove.to.r,
+        toC: coreMove.to.c,
+        capture: Boolean(coreMove.capture || coreMove.isEnPassant)
+      };
     }
 
-    function minimaxAlphaBeta(board, depth, alpha, beta, isMaximizing, movingColor, rootColor) {
-      if (depth === 0) {
-        return evaluateStaticBoard(board, rootColor);
-      }
-
-      const oppColor = movingColor === 'w' ? 'b' : 'w';
-      const moves = [];
-      for (let r = 0; r < 8; r++) {
-        for (let c = 0; c < 8; c++) {
-          const p = board[r][c];
-          if (p && p.color === movingColor) {
-            const pseudo = getPseudoMovesForPiece(r, c, board);
-            for (const m of pseudo) {
-              const saved = board[m.r][m.c];
-              board[m.r][m.c] = p;
-              board[r][c] = null;
-              const inCheck = isKingInCheck(movingColor, board);
-              board[r][c] = p;
-              board[m.r][m.c] = saved;
-              if (!inCheck) {
-                moves.push({ fromR: r, fromC: c, toR: m.r, toC: m.c, capture: Boolean(saved) });
-              }
-            }
-          }
-        }
-      }
-
-      if (moves.length === 0) {
-        if (isKingInCheck(movingColor, board)) {
-          return isMaximizing ? -99999 + (4 - depth) : 99999 - (4 - depth);
-        }
-        return 0; // Stalemate
-      }
-
-      // Order captures first
-      moves.sort((a, b) => (b.capture ? 1 : 0) - (a.capture ? 1 : 0));
-
-      if (isMaximizing) {
-        let maxEval = -Infinity;
-        for (const m of moves) {
-          const piece = board[m.fromR][m.fromC];
-          const target = board[m.toR][m.toC];
-          const isPromo = piece.type === 'pawn' && (m.toR === 0 || m.toR === 7);
-          board[m.toR][m.toC] = isPromo ? { type: 'queen', color: piece.color, hasMoved: true } : piece;
-          board[m.fromR][m.fromC] = null;
-
-          const evaluation = minimaxAlphaBeta(board, depth - 1, alpha, beta, false, oppColor, rootColor);
-
-          board[m.fromR][m.fromC] = piece;
-          board[m.toR][m.toC] = target;
-
-          maxEval = Math.max(maxEval, evaluation);
-          alpha = Math.max(alpha, evaluation);
-          if (beta <= alpha) break;
-        }
-        return maxEval;
-      } else {
-        let minEval = Infinity;
-        for (const m of moves) {
-          const piece = board[m.fromR][m.fromC];
-          const target = board[m.toR][m.toC];
-          const isPromo = piece.type === 'pawn' && (m.toR === 0 || m.toR === 7);
-          board[m.toR][m.toC] = isPromo ? { type: 'queen', color: piece.color, hasMoved: true } : piece;
-          board[m.fromR][m.fromC] = null;
-
-          const evaluation = minimaxAlphaBeta(board, depth - 1, alpha, beta, true, oppColor, rootColor);
-
-          board[m.fromR][m.fromC] = piece;
-          board[m.toR][m.toC] = target;
-
-          minEval = Math.min(minEval, evaluation);
-          beta = Math.min(beta, evaluation);
-          if (beta <= alpha) break;
-        }
-        return minEval;
-      }
+    function isEngineLegalMove(color, candidate) {
+      if (!candidate) return false;
+      return getAllLegalMoves(color).some((m) =>
+        m.fromR === candidate.fromR &&
+        m.fromC === candidate.fromC &&
+        m.toR === candidate.toR &&
+        m.toC === candidate.toC
+      );
     }
 
     function chooseSmartAIMove(color) {
       const legalMoves = getAllLegalMoves(color);
       if (legalMoves.length === 0) return null;
 
-      // 1. Novice tier: blunders, frequent random moves, occasional captures
+      // 1. Novice tier: frequent random moves, occasional captures
       if (currentDifficulty === 'novice') {
         if (Math.random() < 0.65) {
           return legalMoves[Math.floor(Math.random() * legalMoves.length)];
@@ -4984,91 +4849,82 @@ export function initWizardChess() {
         return legalMoves[Math.floor(Math.random() * legalMoves.length)];
       }
 
-      // 2. Beginner tier: 1-ply evaluation with noisy random decisions
-      if (currentDifficulty === 'beginner') {
-        if (Math.random() < 0.28) {
-          return legalMoves[Math.floor(Math.random() * legalMoves.length)];
-        }
+      // 2. Beginner tier: noisy search
+      if (currentDifficulty === 'beginner' && Math.random() < 0.28) {
+        return legalMoves[Math.floor(Math.random() * legalMoves.length)];
       }
 
-      // 3. Minimax depth selection based on difficulty
-      let searchDepth = 1;
-      let jitterMagnitude = 0;
-      if (currentDifficulty === 'beginner') {
-        searchDepth = 1;
-        jitterMagnitude = 32;
-      } else if (currentDifficulty === 'intermediate') {
-        searchDepth = 1;
-        jitterMagnitude = 10;
-      } else if (currentDifficulty === 'advanced') {
-        searchDepth = 2;
-        jitterMagnitude = 3;
-      } else if (currentDifficulty === 'master') {
-        searchDepth = 3;
-        jitterMagnitude = 0;
-      } else if (currentDifficulty === 'legend') {
-        searchDepth = 3; // depth 3 with full PST and zero jitter
-        jitterMagnitude = 0;
-      }
-
-      let bestScore = -Infinity;
-      let bestCandidates = [];
-      const oppColor = color === 'w' ? 'b' : 'w';
-
-      for (const m of legalMoves) {
-        const piece = boardState[m.fromR][m.fromC];
-        const target = boardState[m.toR][m.toC];
-
-        // Simulate move
-        boardState[m.toR][m.toC] = piece;
-        boardState[m.fromR][m.fromC] = null;
-
-        let score = 0;
-        if (searchDepth === 1) {
-          score = evaluateStaticBoard(boardState, color);
-          // Check if destination is genuinely attacked by opponent pieces
-          for (let rr = 0; rr < 8; rr++) {
-            for (let cc = 0; cc < 8; cc++) {
-              const opp = boardState[rr][cc];
-              if (opp && opp.color === oppColor) {
-                if (doesPieceAttackSquare(opp, rr, cc, m.toR, m.toC, boardState)) {
-                  const capturedVal = target ? PIECE_VALUES[target.type] : 0;
-                  const myVal = PIECE_VALUES[piece.type];
-                  if (myVal > capturedVal) {
-                    score -= (myVal - capturedVal) * 0.85;
-                  }
-                  break;
-                }
-              }
-            }
-          }
-        } else {
-          score = -minimaxAlphaBeta(boardState, searchDepth - 1, -Infinity, Infinity, true, oppColor, oppColor);
-        }
-
-        // Undo move
-        boardState[m.fromR][m.fromC] = piece;
-        boardState[m.toR][m.toC] = target;
-
-        if (jitterMagnitude > 0) {
-          score += (Math.random() - 0.5) * jitterMagnitude;
-        }
-
-        if (score > bestScore + 0.5) {
-          bestScore = score;
-          bestCandidates = [m];
-        } else if (Math.abs(score - bestScore) <= 0.5) {
-          bestCandidates.push(m);
-        }
-      }
-
-      return bestCandidates[Math.floor(Math.random() * bestCandidates.length)] || legalMoves[0];
+      // 3. Depth >= 1 tiers: pure core search (same code the Web Worker runs)
+      const result = coreSearchBestMove(buildCoreState(color), getAiSearchProfile());
+      const chosen = coreMoveToEngineMove(result && result.move);
+      if (chosen && isEngineLegalMove(color, chosen)) return chosen;
+      return legalMoves[0];
     }
 
-    function triggerAIMoveNow() {
+    // --- Web Worker integration: search off the render loop ---------------
+    let aiWorkerInstance = null;
+    let aiWorkerUnavailable = false;
+    let aiWorkerRequestId = 0;
+
+    function getAiWorker() {
+      if (aiWorkerUnavailable) return null;
+      if (aiWorkerInstance) return aiWorkerInstance;
+      try {
+        aiWorkerInstance = new Worker(new URL('./chess/aiWorker.js', import.meta.url), { type: 'module' });
+      } catch (e) {
+        aiWorkerUnavailable = true;
+        return null;
+      }
+      return aiWorkerInstance;
+    }
+
+    function requestAiSearch(coreState, options) {
+      return new Promise((resolve) => {
+        const worker = getAiWorker();
+        if (!worker) {
+          resolve(null);
+          return;
+        }
+        const id = ++aiWorkerRequestId;
+        let settled = false;
+        const finish = (value) => {
+          if (!settled) {
+            settled = true;
+            resolve(value);
+          }
+        };
+        const timeout = setTimeout(() => {
+          worker.removeEventListener('message', onMessage);
+          finish(null);
+        }, 10000);
+        const onMessage = (event) => {
+          const data = event && event.data;
+          if (!data || data.id !== id) return;
+          clearTimeout(timeout);
+          worker.removeEventListener('message', onMessage);
+          finish(data.error ? null : data.result);
+        };
+        worker.addEventListener('message', onMessage);
+        worker.postMessage({ id, state: coreState, options });
+      });
+    }
+
+    async function chooseSmartAIMoveAsync(color) {
+      // Cheap tiers stay synchronous (random logic, depth 1)
+      if (currentDifficulty === 'novice' || currentDifficulty === 'beginner') {
+        return chooseSmartAIMove(color);
+      }
+      const result = await requestAiSearch(buildCoreState(color), getAiSearchProfile());
+      const chosen = coreMoveToEngineMove(result && result.move);
+      if (chosen && isEngineLegalMove(color, chosen)) return chosen;
+      // Fallback: main-thread core search (worker unavailable or timed out)
+      return chooseSmartAIMove(color);
+    }
+
+    async function triggerAIMoveNow() {
       if (isAnimatingMove || gameOver) return false;
-      const chosen = chooseSmartAIMove(currentTurn);
-      if (!chosen) return false;
+      const chosen = await chooseSmartAIMoveAsync(currentTurn);
+      if (!chosen || isAnimatingMove || gameOver) return false;
       return executeChessMove(chosen.fromR, chosen.fromC, chosen.toR, chosen.toC);
     }
 
