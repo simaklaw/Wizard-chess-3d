@@ -6,6 +6,7 @@ import { wizardChessAudio } from './wizardChessAudio.ts';
 import { getTranslations, getLanguage, setLanguage as setI18nLanguage, subscribeLanguage } from './i18n.ts';
 import { insufficientMaterial as coreInsufficientMaterial, positionKey as corePositionKey } from './chess/rules.js';
 import { searchBestMove as coreSearchBestMove } from './chess/aiSearch.js';
+import { emitEngineEvent } from './engineBus.ts';
 
 /** @type {any} */
 const THREE = THREE_NS;
@@ -1149,9 +1150,7 @@ export function initWizardChess() {
         }
       }
 
-      window.dispatchEvent(new CustomEvent('wizardChessBoardStoneChanged', {
-        detail: { texture: currentBoardStoneLook }
-      }));
+      emitEngineEvent('boardStoneChanged', { texture: currentBoardStoneLook });
 
       return currentBoardStoneLook;
     }
@@ -2007,9 +2006,7 @@ export function initWizardChess() {
 
     function updateMoveHistoryDOM() {
       try {
-        window.dispatchEvent(new CustomEvent('wizardChessHistoryChanged', {
-          detail: { history: moveHistoryNotation.map(r => ({ ...r })) }
-        }));
+        emitEngineEvent('historyChanged', { history: moveHistoryNotation.map(r => ({ ...r })) });
       } catch (e) {}
 
       const container = document.getElementById('move-history-list');
@@ -2182,14 +2179,12 @@ export function initWizardChess() {
       }
 
       try {
-        window.dispatchEvent(new CustomEvent('wizardChessPreviewChanged', {
-          detail: {
-            previewingPly,
-            totalPlies: moveHistory.length,
-            move: entry ? entry.move : null,
-            san: entry ? entry.san : ''
-          }
-        }));
+        emitEngineEvent('previewChanged', {
+          previewingPly,
+          totalPlies: moveHistory.length,
+          move: entry ? entry.move : null,
+          san: entry ? entry.san : ''
+        });
       } catch (e) {}
 
       return true;
@@ -2213,9 +2208,7 @@ export function initWizardChess() {
       }
 
       try {
-        window.dispatchEvent(new CustomEvent('wizardChessPreviewChanged', {
-          detail: { previewingPly: null, totalPlies: moveHistory.length }
-        }));
+        emitEngineEvent('previewChanged', { previewingPly: null, totalPlies: moveHistory.length });
       } catch (e) {}
 
       return true;
@@ -2570,7 +2563,7 @@ export function initWizardChess() {
       };
 
       try {
-        window.dispatchEvent(new CustomEvent('wizardChessTourStarted'));
+      emitEngineEvent('tourStarted', {});
       } catch (e) {}
 
       return true;
@@ -2640,9 +2633,7 @@ export function initWizardChess() {
       }
 
       try {
-        window.dispatchEvent(new CustomEvent('wizardChessTourFinished', {
-          detail: { openMenu: true, immediate }
-        }));
+      emitEngineEvent('tourFinished', { openMenu: true, immediate });
       } catch (e) {}
     }
 
@@ -2679,9 +2670,7 @@ export function initWizardChess() {
       moveHistoryNotation.length = 0;
       updateMoveHistoryDOM();
       try {
-        window.dispatchEvent(new CustomEvent('wizardChessPreviewChanged', {
-          detail: { previewingPly: null, totalPlies: 0 }
-        }));
+        emitEngineEvent('previewChanged', { previewingPly: null, totalPlies: 0 });
       } catch (e) {}
       scriptDeviated = false;
       if (!preserveScript) {
@@ -7429,5 +7418,9 @@ export function initWizardChess() {
         startCathedralTour();
       }
     })();
+
+    // Typed module-level handle for the React UI (App.tsx). The
+    // window.wizardChess global remains as a legacy alias for automated tests.
+    return window.wizardChess;
 }
 
