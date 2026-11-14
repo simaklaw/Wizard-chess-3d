@@ -6575,6 +6575,7 @@ export function initWizardChess() {
       endCathedralTour,
       isCathedralTourActive: () => Boolean(activeCathedralTour),
       startMatchClocks,
+      dispose: disposeWizardChess,
       setDifficulty: (diff) => {
         currentDifficulty = diff;
       },
@@ -7123,7 +7124,10 @@ export function initWizardChess() {
       manualStepMode = Boolean(v);
     };
 
+    let engineDisposed = false;
+
     function animate() {
+      if (engineDisposed) return;
       if (!navigator.webdriver && !manualStepMode) {
         requestAnimationFrame(animate);
       }
@@ -7132,16 +7136,60 @@ export function initWizardChess() {
       stepScene(dt || 0.016, true);
     }
 
-    window.addEventListener('resize', () => {
+    const onWindowResize = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
-    });
+    };
+    window.addEventListener('resize', onWindowResize);
+
+    // =========================================================================
+    // Teardown: full disposal of renderer, scene resources, worker & listeners
+    // =========================================================================
+    function disposeSceneResources(root) {
+      root.traverse((obj) => {
+        if (obj.geometry) obj.geometry.dispose();
+        const mats = Array.isArray(obj.material) ? obj.material : (obj.material ? [obj.material] : []);
+        for (const mat of mats) {
+          for (const key of Object.keys(mat)) {
+            const val = mat[key];
+            if (val && val.isTexture) val.dispose();
+          }
+          mat.dispose();
+        }
+      });
+    }
+
+    function disposeWizardChess() {
+      if (engineDisposed) return;
+      engineDisposed = true;
+      isClockRunning = false;
+      if (aiTimer) {
+        clearTimeout(aiTimer);
+        aiTimer = null;
+      }
+      if (aiWorkerInstance) {
+        try { aiWorkerInstance.terminate(); } catch (e) {}
+        aiWorkerInstance = null;
+      }
+      window.removeEventListener('resize', onWindowResize);
+      disposeSceneResources(scene);
+      try {
+        renderer.dispose();
+        if (typeof renderer.forceContextLoss === 'function') renderer.forceContextLoss();
+      } catch (e) {}
+      if (renderer.domElement && renderer.domElement.parentNode) {
+        renderer.domElement.parentNode.removeChild(renderer.domElement);
+      }
+      if (window.wizardChess) window.wizardChess.disposed = true;
+    }
+    window.wizardChess.dispose = disposeWizardChess;
 
 
     // Startup sequence (Standalone Single-Player AI Studio Applet)
     (async () => {
       await loadAllAssets();
+      if (engineDisposed) return;
       const params = new URLSearchParams(window.location.search);
       const urlSide = params.get('side');
       if (urlSide === 'b' || urlSide === 'black') {

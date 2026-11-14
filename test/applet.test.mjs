@@ -398,7 +398,21 @@ test('Decluttered UI: Main screen contains only vital elements (Turn, Clocks, Un
   assert.ok(i18nTs.includes('Меню святилища'), 'i18n.ts must provide Russian translation for menuTitle');
 });
 
+test('Engine lifecycle: dispose() tears down renderer, worker, and listeners; App.tsx calls it on unmount', () => {
+  const engineJs = fs.readFileSync(path.join(ROOT, 'src/wizardChessEngine.js'), 'utf-8');
+  const appTsx = fs.readFileSync(path.join(ROOT, 'src/App.tsx'), 'utf-8');
+  const engineBusTs = fs.readFileSync(path.join(ROOT, 'src/engineBus.ts'), 'utf-8');
 
-
-
-
+  assert.ok(engineJs.includes('function disposeWizardChess('), 'engine must implement disposeWizardChess');
+  assert.ok(engineJs.includes('dispose: disposeWizardChess'), 'dispose must be exposed in the engine API');
+  assert.ok(engineJs.includes('aiWorkerInstance.terminate()'), 'dispose must terminate the AI worker');
+  assert.ok(engineJs.includes("window.removeEventListener('resize', onWindowResize)"), 'dispose must remove the resize listener');
+  assert.ok(engineJs.includes('renderer.dispose()'), 'dispose must dispose the WebGL renderer');
+  assert.ok(engineJs.includes('forceContextLoss'), 'dispose must force WebGL context loss');
+  assert.ok(engineJs.includes('if (engineDisposed) return;'), 'animate loop and startup must stop after dispose');
+  assert.ok(engineJs.includes('obj.geometry.dispose()'), 'dispose must release scene geometries');
+  assert.ok(engineJs.includes('isTexture) val.dispose()'), 'dispose must release material textures');
+  assert.ok(appTsx.includes('dispose?.()'), 'App.tsx must call engine dispose on unmount');
+  assert.ok(appTsx.includes('initializedRef.current = false;'), 'App.tsx must allow re-init after dispose');
+  assert.ok(engineBusTs.includes('dispose?(): void;'), 'WizardChessApi type must include dispose');
+});
