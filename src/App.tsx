@@ -57,6 +57,17 @@ export default function App() {
     if (api?.getMoveHistoryNotation) {
       setHistoryList(api.getMoveHistoryNotation());
     }
+    // Unmount cleanup: tear down the WebGL engine (renderer, geometries,
+    // materials, textures, AI worker, listeners) and allow a clean re-init.
+    return () => {
+      try {
+        wizardChessRef.current?.dispose?.();
+      } catch (e) {
+        // engine already torn down or not fully initialized
+      }
+      wizardChessRef.current = null;
+      initializedRef.current = false;
+    };
   }, []);
 
   useEffect(() => {

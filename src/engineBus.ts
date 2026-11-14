@@ -92,5 +92,7 @@ export interface WizardChessApi {
   startCathedralTour(): boolean;
   endCathedralTour(immediate?: boolean): void;
   toggleUI(force?: boolean): void;
+  /** Full teardown of the engine (renderer, resources, worker, listeners). */
+  dispose?(): void;
   [key: string]: unknown;
 }
