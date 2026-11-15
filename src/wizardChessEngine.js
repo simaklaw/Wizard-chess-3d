@@ -1733,13 +1733,6 @@ export function initWizardChess() {
     let aiAutoPlay = true;
     let aiTimer = null;
 
-    // Multiplayer State
-    let roomCode = null;
-    let playerToken = localStorage.getItem('wizard_chess_token') || '';
-    let roomEventSource = null;
-    let roomPollTimer = null;
-    let appliedMoveSeq = 0;
-    let appliedResetCount = 0;
 
     // Camera Animation & Telemetry State
     const cameraTelemetry = {
@@ -3884,11 +3877,9 @@ export function initWizardChess() {
         return false;
       }
 
-      if (!options.fromRemote) {
-        const legalForPiece = getLegalMovesForPiece(fromR, fromC);
-        if (!legalForPiece.some((m) => m.r === toR && m.c === toC)) {
-          return false;
-        }
+      const legalForPiece = getLegalMovesForPiece(fromR, fromC);
+      if (!legalForPiece.some((m) => m.r === toR && m.c === toC)) {
+        return false;
       }
 
       if (preMoveHighlightTask) {
@@ -3953,17 +3944,6 @@ export function initWizardChess() {
       clearCheckLaserBeams();
       selectedSquare = null;
       validMoves = [];
-
-      // Broadcast to multiplayer room (cloud API + static BroadcastChannel/localStorage fallback)
-      if (gameMode === 'multi' && roomCode && !options.fromRemote) {
-        sendMultiplayerMove({
-          playerToken,
-          color: piece.color,
-          from: { r: fromR, c: fromC },
-          to: { r: toR, c: toC },
-          promotion: 'queen'
-        });
-      }
 
       const startPos = boardToWorld(fromR, fromC);
       const endPos = boardToWorld(toR, toC);
@@ -5538,7 +5518,6 @@ export function initWizardChess() {
       const modeBadge = document.getElementById('mode-badge');
       const btnAiMove = document.getElementById('btn-ai-move');
       const btnSideToggle = document.getElementById('btn-side-toggle');
-      const roomPill = document.getElementById('room-pill');
       const capturedTray = document.getElementById('captured-tray');
 
       turnDot.className = 'turn-dot' + (currentTurn === 'b' ? ' black' : '');
@@ -5585,9 +5564,6 @@ export function initWizardChess() {
       if (btnSideToggle) {
         btnSideToggle.style.display = 'inline-flex';
         btnSideToggle.textContent = playerColor === 'w' ? t.btnPlayAsBlack : t.btnPlayAsWhite;
-      }
-      if (roomPill) {
-        roomPill.style.display = 'none';
       }
 
       if (capturedByWhite > 0 || capturedByBlack > 0) {
@@ -5708,327 +5684,6 @@ export function initWizardChess() {
     });
 
     // =========================================================================
-    // Multiplayer Room Synchronization (Same-Origin API + Static Site Fallback)
-    // =========================================================================
-    const CLOUD_MP_API_BASE = '';
-    const isStaticHost =
-      window.location.hostname.includes('zipline') ||
-      window.location.hostname.includes('github.io') ||
-      window.location.protocol === 'file:';
-
-    let staticBroadcastChannel = null;
-    try {
-      if (typeof BroadcastChannel !== 'undefined') {
-        staticBroadcastChannel = new BroadcastChannel('wizard_chess_mp_channel');
-        staticBroadcastChannel.onmessage = (ev) => {
-          const msg = ev.data;
-          if (msg && msg.type === 'room_state' && msg.room && msg.room.code === roomCode) {
-            applyRemoteRoomState(msg.room);
-          }
-        };
-      }
-    } catch (e) {}
-
-    window.addEventListener('storage', (ev) => {
-      if (ev.key === `wizard_chess_room_${roomCode}` && ev.newValue) {
-        try {
-          applyRemoteRoomState(JSON.parse(ev.newValue));
-        } catch (e) {}
-      }
-    });
-
-    function getStaticRoom(code) {
-      try {
-        const raw = localStorage.getItem(`wizard_chess_room_${code}`);
-        return raw ? JSON.parse(raw) : null;
-      } catch (e) {
-        return null;
-      }
-    }
-
-    function saveAndBroadcastStaticRoom(room) {
-      try {
-        localStorage.setItem(`wizard_chess_room_${room.code}`, JSON.stringify(room));
-      } catch (e) {}
-      try {
-        if (staticBroadcastChannel) {
-          staticBroadcastChannel.postMessage({ type: 'room_state', room });
-        }
-      } catch (e) {}
-    }
-
-    function ensurePlayerToken() {
-      if (!playerToken) {
-        playerToken = 'tok_' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
-        try {
-          localStorage.setItem('wizard_chess_token', playerToken);
-        } catch (e) {}
-      }
-      return playerToken;
-    }
-
-    async function mpApiRequest(apiPath, options = {}) {
-      const bases = isStaticHost
-        ? (CLOUD_MP_API_BASE ? [CLOUD_MP_API_BASE] : [])
-        : (CLOUD_MP_API_BASE ? ['', CLOUD_MP_API_BASE] : ['']);
-      for (const base of bases) {
-        try {
-          const res = await fetch(`${base}${apiPath}`, options);
-          if (res.ok) {
-            const ct = res.headers.get('content-type') || '';
-            if (ct.includes('application/json')) {
-              return await res.json();
-            }
-          }
-        } catch (e) {}
-      }
-      return null;
-    }
-
-    async function sendMultiplayerMove(movePayload) {
-      if (!roomCode) return;
-      // 1. Update static local/BroadcastChannel room store immediately
-      const stRoom = getStaticRoom(roomCode);
-      if (stRoom) {
-        stRoom.moves = stRoom.moves || [];
-        stRoom.moves.push({
-          seq: stRoom.moves.length + 1,
-          color: movePayload.color,
-          from: movePayload.from,
-          to: movePayload.to,
-          promotion: movePayload.promotion || 'queen',
-          ts: Date.now()
-        });
-        stRoom.turn = movePayload.color === 'w' ? 'b' : 'w';
-        stRoom.updatedAt = Date.now();
-        saveAndBroadcastStaticRoom(stRoom);
-      }
-      // 2. Also broadcast to cloud/local room API if reachable
-      await mpApiRequest(`/api/rooms/${roomCode}/move`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(movePayload)
-      });
-    }
-
-    function stopMultiplayerSync() {
-      if (roomEventSource) {
-        roomEventSource.close();
-        roomEventSource = null;
-      }
-      if (roomPollTimer) {
-        clearInterval(roomPollTimer);
-        roomPollTimer = null;
-      }
-    }
-
-    function applyRemoteRoomState(room) {
-      if (!room) return;
-      const statusEl = document.getElementById('hud-room-status');
-      const bothReady = room.whiteJoined && room.blackJoined;
-      if (statusEl) {
-        statusEl.textContent = bothReady ? '2/2 Connected' : 'Waiting for Opponent';
-      }
-      const mpMsg = document.getElementById('mp-status-msg');
-      if (mpMsg && roomCode) {
-        mpMsg.textContent = bothReady
-          ? `Both players connected to Room ${room.code}!`
-          : `Room ${room.code} ready — waiting for second player to join...`;
-      }
-
-      if (room.resetCount > appliedResetCount) {
-        appliedResetCount = room.resetCount;
-        appliedMoveSeq = 0;
-        resetChessBoard(false);
-      }
-
-      if (Array.isArray(room.moves) && room.moves.length > appliedMoveSeq) {
-        const tryApplyNext = () => {
-          if (isAnimatingMove) {
-            setTimeout(tryApplyNext, 120);
-            return;
-          }
-          if (appliedMoveSeq >= room.moves.length) return;
-          const nextMove = room.moves[appliedMoveSeq];
-          appliedMoveSeq = nextMove.seq || (appliedMoveSeq + 1);
-          const pieceAtFrom = boardState[nextMove.from.r]?.[nextMove.from.c];
-          if (pieceAtFrom) {
-            executeChessMove(
-              nextMove.from.r,
-              nextMove.from.c,
-              nextMove.to.r,
-              nextMove.to.c,
-              { fromRemote: true }
-            );
-          }
-          if (appliedMoveSeq < room.moves.length) {
-            setTimeout(tryApplyNext, 250);
-          }
-        };
-        tryApplyNext();
-      }
-    }
-
-    function startMultiplayerSync(code) {
-      stopMultiplayerSync();
-      roomCode = code;
-
-      if (!isStaticHost) {
-        try {
-          roomEventSource = new EventSource(`/api/rooms/${code}/events`);
-          roomEventSource.onmessage = (ev) => {
-            try {
-              const data = JSON.parse(ev.data);
-              if (data.room) applyRemoteRoomState(data.room);
-            } catch (e) {}
-          };
-        } catch (e) {}
-      }
-
-      roomPollTimer = setInterval(async () => {
-        if (gameMode !== 'multi' || !roomCode) return;
-        const data = await mpApiRequest(
-          `/api/rooms/${roomCode}/state?playerToken=${encodeURIComponent(playerToken)}`
-        );
-        if (data && data.ok && data.room) {
-          saveAndBroadcastStaticRoom(data.room);
-          applyRemoteRoomState(data.room);
-          return;
-        }
-        const stRoom = getStaticRoom(roomCode);
-        if (stRoom) {
-          applyRemoteRoomState(stRoom);
-        }
-      }, 1500);
-    }
-
-    async function createMultiplayerRoom(preferredColor) {
-      const mpMsg = document.getElementById('mp-status-msg');
-      mpMsg.textContent = 'Creating room...';
-      ensurePlayerToken();
-
-      let data = await mpApiRequest('/api/rooms/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ preferredColor, playerToken })
-      });
-
-      // Pure static fallback if neither local nor remote server is reachable
-      if (!data || !data.ok) {
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-        let genCode = '';
-        for (let i = 0; i < 4; i++) {
-          genCode += chars[Math.floor(Math.random() * chars.length)];
-        }
-        const side = preferredColor === 'b' ? 'b' : 'w';
-        const staticRoom = {
-          code: genCode,
-          status: 'waiting',
-          whiteJoined: side === 'w',
-          blackJoined: side === 'b',
-          turn: 'w',
-          moves: [],
-          resetCount: 0,
-          updatedAt: Date.now()
-        };
-        saveAndBroadcastStaticRoom(staticRoom);
-        data = {
-          ok: true,
-          code: genCode,
-          color: side,
-          playerToken,
-          room: staticRoom
-        };
-      } else if (data.room) {
-        saveAndBroadcastStaticRoom(data.room);
-      }
-
-      playerToken = data.playerToken;
-      try {
-        localStorage.setItem('wizard_chess_token', playerToken);
-      } catch (e) {}
-      scriptedGameActive = false;
-      gameMode = 'multi';
-      playerColor = data.color;
-      roomCode = data.code;
-      appliedMoveSeq = 0;
-      appliedResetCount = data.room.resetCount || 0;
-
-      document.getElementById('modal-room-code').textContent = roomCode;
-      document.getElementById('room-created-panel').style.display = 'block';
-
-      resetChessBoard(true);
-      startMultiplayerSync(roomCode);
-      applyRemoteRoomState(data.room);
-      window.history.replaceState({}, '', `?room=${roomCode}`);
-    }
-
-    async function joinMultiplayerRoom(codeInput) {
-      const code = String(codeInput || '').trim().toUpperCase();
-      const mpMsg = document.getElementById('mp-status-msg');
-      if (!code) {
-        mpMsg.textContent = 'Please enter a 4-character Room Code.';
-        return false;
-      }
-      mpMsg.textContent = `Joining room ${code}...`;
-      ensurePlayerToken();
-
-      let data = await mpApiRequest('/api/rooms/join', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, playerToken })
-      });
-
-      if (!data || !data.ok) {
-        let stRoom = getStaticRoom(code);
-        if (!stRoom) {
-          stRoom = {
-            code,
-            status: 'playing',
-            whiteJoined: true,
-            blackJoined: true,
-            turn: 'w',
-            moves: [],
-            resetCount: 0,
-            updatedAt: Date.now()
-          };
-        } else {
-          if (!stRoom.whiteJoined) stRoom.whiteJoined = true;
-          else if (!stRoom.blackJoined) stRoom.blackJoined = true;
-          stRoom.status = stRoom.whiteJoined && stRoom.blackJoined ? 'playing' : 'waiting';
-          stRoom.updatedAt = Date.now();
-        }
-        const assignedColor = !stRoom.blackJoined ? 'w' : 'b';
-        saveAndBroadcastStaticRoom(stRoom);
-        data = {
-          ok: true,
-          code,
-          color: assignedColor,
-          playerToken,
-          room: stRoom
-        };
-      } else if (data.room) {
-        saveAndBroadcastStaticRoom(data.room);
-      }
-
-      playerToken = data.playerToken;
-      try {
-        localStorage.setItem('wizard_chess_token', playerToken);
-      } catch (e) {}
-      scriptedGameActive = false;
-      gameMode = 'multi';
-      playerColor = data.color;
-      roomCode = data.code;
-      appliedMoveSeq = 0;
-      appliedResetCount = data.room.resetCount || 0;
-
-      resetChessBoard(true);
-      startMultiplayerSync(roomCode);
-      applyRemoteRoomState(data.room);
-      window.history.replaceState({}, '', `?room=${roomCode}`);
-      closeLobbyModal();
-      return true;
-    }
 
     // =========================================================================
     // Camera Presets & HUD Controls
@@ -6196,21 +5851,8 @@ export function initWizardChess() {
       resetChessBoard(true, scriptedGameActive);
     });
 
-    document.getElementById('btn-reset')?.addEventListener('click', async () => {
-      if (gameMode === 'multi' && roomCode) {
-        const stRoom = getStaticRoom(roomCode);
-        if (stRoom) {
-          stRoom.moves = [];
-          stRoom.turn = 'w';
-          stRoom.resetCount = (stRoom.resetCount || 0) + 1;
-          stRoom.updatedAt = Date.now();
-          saveAndBroadcastStaticRoom(stRoom);
-          applyRemoteRoomState(stRoom);
-        }
-        await mpApiRequest(`/api/rooms/${roomCode}/reset`, { method: 'POST' });
-      } else {
-        resetChessBoard(true, false);
-      }
+    document.getElementById('btn-reset')?.addEventListener('click', () => {
+      resetChessBoard(true, false);
     });
 
     // =========================================================================
@@ -6218,7 +5860,6 @@ export function initWizardChess() {
     // =========================================================================
     const lobbyModal = document.getElementById('lobby-modal');
     let selectedSpColor = 'w';
-    let selectedMpColor = 'w';
 
     function openLobbyModal(tab = null) {
       lobbyModal?.classList.add('open');
@@ -6284,61 +5925,12 @@ export function initWizardChess() {
     });
 
     document.getElementById('btn-start-single')?.addEventListener('click', () => {
-      stopMultiplayerSync();
       scriptedGameActive = false;
       gameMode = 'single';
-      roomCode = null;
       playerColor = selectedSpColor;
       window.history.replaceState({}, '', window.location.pathname);
       closeLobbyModal();
       resetChessBoard(true);
-    });
-
-    document.getElementById('pick-mp-white')?.addEventListener('click', () => {
-      selectedMpColor = 'w';
-      document.getElementById('pick-mp-white').classList.add('selected');
-      document.getElementById('pick-mp-black').classList.remove('selected');
-    });
-    document.getElementById('pick-mp-black')?.addEventListener('click', () => {
-      selectedMpColor = 'b';
-      document.getElementById('pick-mp-black').classList.add('selected');
-      document.getElementById('pick-mp-white').classList.remove('selected');
-    });
-
-    document.getElementById('btn-create-room')?.addEventListener('click', () => {
-      createMultiplayerRoom(selectedMpColor);
-    });
-
-    document.getElementById('btn-enter-created-room')?.addEventListener('click', () => {
-      closeLobbyModal();
-    });
-
-    document.getElementById('btn-copy-code')?.addEventListener('click', () => {
-      if (!roomCode) return;
-      navigator.clipboard?.writeText(roomCode);
-      document.getElementById('mp-status-msg').textContent = `Copied room code ${roomCode}!`;
-    });
-
-    document.getElementById('btn-copy-link')?.addEventListener('click', () => {
-      if (!roomCode) return;
-      const inviteUrl = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
-      navigator.clipboard?.writeText(inviteUrl);
-      document.getElementById('mp-status-msg').textContent = 'Copied invite link to clipboard!';
-    });
-
-    document.getElementById('room-pill')?.addEventListener('click', () => {
-      openLobbyModal('multi');
-    });
-
-    document.getElementById('btn-join-room')?.addEventListener('click', () => {
-      const val = document.getElementById('input-room-code').value;
-      joinMultiplayerRoom(val);
-    });
-
-    document.getElementById('input-room-code')?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        joinMultiplayerRoom(e.target.value);
-      }
     });
 
     document.getElementById('btn-checkmate-stepback')?.addEventListener('click', () => {
@@ -6460,14 +6052,12 @@ export function initWizardChess() {
         return path;
       },
       setSinglePlayerSide: (color) => {
-        stopMultiplayerSync();
         scriptedGameActive = false;
         gameMode = 'single';
         playerColor = color === 'b' ? 'b' : 'w';
         resetChessBoard(true);
       },
       setupCustomScenario: (pieces, turn = 'w') => {
-        stopMultiplayerSync();
         if (aiTimer) {
           clearTimeout(aiTimer);
           aiTimer = null;
@@ -6523,7 +6113,6 @@ export function initWizardChess() {
         uiHidden: document.body.classList.contains('cinematic-ui-hidden'),
         playerColor,
         currentTurn,
-        roomCode,
         isAnimatingMove,
         gameOver,
         checkmateState: { ...checkmateState },
@@ -6693,41 +6282,6 @@ export function initWizardChess() {
           ctx.font = '600 13px Inter, sans-serif';
           ctx.fillText(`${turnStr}   |   ${modeStr}`, 155, 42);
 
-          if (lobbyModal?.classList.contains('open')) {
-            ctx.fillStyle = 'rgba(6, 8, 14, 0.72)';
-            ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
-            const cw = 440;
-            const ch = 290;
-            const cx = (window.innerWidth - cw) / 2;
-            const cy = (window.innerHeight - ch) / 2;
-            ctx.fillStyle = 'rgba(14, 17, 26, 0.96)';
-            ctx.strokeStyle = '#d4af37';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.roundRect(cx, cy, cw, ch, 16);
-            ctx.fill();
-            ctx.stroke();
-
-            ctx.fillStyle = '#d4af37';
-            ctx.font = 'bold 18px Inter, sans-serif';
-            ctx.fillText('MULTIPLAYER LOBBY • ROOM CODE', cx + 28, cy + 42);
-
-            ctx.fillStyle = '#9aa0a6';
-            ctx.font = '13px Inter, sans-serif';
-            ctx.fillText('Share this 4-character Room Code with Player 2:', cx + 28, cy + 82);
-
-            ctx.fillStyle = '#f5d76e';
-            ctx.font = 'bold 38px monospace';
-            ctx.fillText(roomCode || '----', cx + 150, cy + 138);
-
-            ctx.fillStyle = '#4ea8de';
-            ctx.font = '600 14px Inter, sans-serif';
-            ctx.fillText('Create Room  •  Join Room by Code  •  Live Move Sync', cx + 42, cy + 195);
-
-            ctx.fillStyle = '#f0ece1';
-            ctx.font = '13px Inter, sans-serif';
-            ctx.fillText(`Host Assigned: ${playerColor === 'w' ? 'White' : 'Black'}  |  Status: Waiting for Opponent`, cx + 48, cy + 240);
-          }
           ctx.restore();
         }
 
