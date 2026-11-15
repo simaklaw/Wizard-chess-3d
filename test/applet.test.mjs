@@ -416,3 +416,15 @@ test('Engine lifecycle: dispose() tears down renderer, worker, and listeners; Ap
   assert.ok(appTsx.includes('initializedRef.current = false;'), 'App.tsx must allow re-init after dispose');
   assert.ok(engineBusTs.includes('dispose?(): void;'), 'WizardChessApi type must include dispose');
 });
+
+test('Dead multiplayer code removed: no room sync, cloud API, or lobby-multi listeners remain in the engine', () => {
+  const engineJs = fs.readFileSync(path.join(ROOT, 'src/wizardChessEngine.js'), 'utf-8');
+  for (const forbidden of ['CLOUD_MP_API_BASE', 'sendMultiplayerMove', 'applyRemoteRoomState', 'startMultiplayerSync', 'stopMultiplayerSync', 'mpApiRequest', 'createMultiplayerRoom', 'joinMultiplayerRoom', 'getStaticRoom', 'saveAndBroadcastStaticRoom', 'ensurePlayerToken', 'BroadcastChannel', 'wizard_chess_room', 'wizard_chess_token', 'roomEventSource', 'roomPollTimer', 'appliedMoveSeq', 'appliedResetCount', 'roomCode', 'playerToken', 'fromRemote', "gameMode = 'multi'", 'btn-create-room', 'btn-join-room', 'room-pill', 'pick-mp-', 'MULTIPLAYER LOBBY']) {
+    assert.ok(!engineJs.includes(forbidden), `Dead multiplayer code must be removed: ${forbidden}`);
+  }
+  // Single-player & director-script features stay intact
+  assert.ok(engineJs.includes("let gameMode = 'single'"), 'single-player mode must remain');
+  assert.ok(engineJs.includes('scriptedGameActive'), 'director script feature must remain');
+  assert.ok(engineJs.includes('openLobbyModal'), 'lobby modal (script tab) must remain');
+  assert.ok(engineJs.includes('function disposeWizardChess('), 'dispose teardown must remain');
+});
