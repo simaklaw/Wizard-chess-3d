@@ -18,6 +18,17 @@ jobs:
       - name: Type check
         run: npm run lint
       - name: Tests
-        run: npm test
+        run: |
+          set -o pipefail
+          node --test test/ 2>&1 | tee /tmp/test-output.log
+      - name: Report test failures as annotations
+        if: failure()
+        run: |
+          grep -E "^(not ok|✖)|AssertionError|SyntaxError|ERR_MODULE_NOT_FOUND|Cannot find" /tmp/test-output.log | head -30 | while IFS= read -r line; do
+            echo "::error::$line"
+          done
+          tail -40 /tmp/test-output.log | while IFS= read -r line; do
+            echo "::error::$line"
+          done
       - name: Build
         run: npm run build
