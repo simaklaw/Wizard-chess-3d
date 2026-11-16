@@ -77,14 +77,23 @@ test('en passant: capture available, correct SAN, pawn removed', () => {
   assert.equal(after.board[3][5], null); // captured pawn on f5 removed
 });
 
-test('en passant: target cleared after the next move', () => {
+test('en passant: target cleared after the capture and after the next move', () => {
   const state = fenToState('rnbqkbnr/ppp1p1pp/8/3pPp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3');
   const epMove = legalMoves(state).find((m) => m.isEnPassant);
   const afterEp = makeMove(state, epMove);
-  assert.ok(afterEp.ep);
-  const reply = { from: { r: 1, c: 7 }, to: { r: 2, c: 7 }, capture: false, isEnPassant: false, castle: null, promotion: null, isDoublePush: false };
+  // The ep target only exists immediately after a double pawn push.
+  // Once the en passant capture is played, the target must be gone.
+  assert.equal(afterEp.ep, null);
+  const reply = { from: { r: 1, c: 7 }, to: { r: 3, c: 7 }, capture: false, isEnPassant: false, castle: null, promotion: null, isDoublePush: true };
   const afterReply = makeMove(afterEp, reply);
-  assert.equal(afterReply.ep, null);
+  // A new double push sets a fresh ep target.
+  assert.deepEqual(afterReply.ep, { r: 2, c: 7 });
+  // A quiet reply keeps the target cleared.
+  const quiet = { from: { r: 0, c: 6 }, to: { r: 2, c: 6 }, capture: false, isEnPassant: false, castle: null, promotion: null, isDoublePush: false };
+  const state2 = fenToState('rnbqkbnr/ppp1p1pp/8/3pPp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3');
+  const afterEp2 = makeMove(state2, legalMoves(state2).find((m) => m.isEnPassant));
+  const afterQuiet = makeMove(afterEp2, quiet);
+  assert.equal(afterQuiet.ep, null);
 });
 
 // ---------------------------------------------------------------------------
