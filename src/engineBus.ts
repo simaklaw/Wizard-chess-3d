@@ -34,9 +34,21 @@ export type EngineEventName = keyof EngineEventMap;
 
 type Handler<K extends EngineEventName> = (payload: EngineEventMap[K]) => void;
 
-const handlers: {
-  [K in EngineEventName]?: Set<Handler<K>>;
-} = {};
+/**
+ * Internal storage. Handlers are stored type-erased and cast back at the
+ * boundaries (subscribe/emit), because TypeScript cannot correlate the
+ * generic K across a dynamic registry keyed by the event name.
+ */
+const handlers = new Map<EngineEventName, Set<(payload: never) => void>>();
+
+function getHandlerSet(eventName: EngineEventName): Set<(payload: never) => void> {
+  let set = handlers.get(eventName);
+  if (!set) {
+    set = new Set();
+    handlers.set(eventName, set);
+  }
+  return set;
+}
 
 /**
  * Subscribes to an engine event. Returns an unsubscribe function
@@ -46,10 +58,10 @@ export function onEngineEvent<K extends EngineEventName>(
   eventName: K,
   handler: Handler<K>
 ): () => void {
-  const set = handlers[eventName] ?? (handlers[eventName] = new Set<Handler<K>>());
-  set.add(handler);
+  const set = getHandlerSet(eventName);
+  set.add(handler as (payload: never) => void);
   return () => {
-    set.delete(handler);
+    set.delete(handler as (payload: never) => void);
   };
 }
 
@@ -58,11 +70,11 @@ export function emitEngineEvent<K extends EngineEventName>(
   eventName: K,
   payload: EngineEventMap[K]
 ): void {
-  const set = handlers[eventName];
+  const set = handlers.get(eventName);
   if (!set) return;
   for (const handler of [...set]) {
     try {
-      handler(payload);
+      (handler as Handler<K>)(payload);
     } catch (e) {
       console.error(`engineBus: handler for "${String(eventName)}" failed`, e);
     }
