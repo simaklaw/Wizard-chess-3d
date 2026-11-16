@@ -20,7 +20,7 @@ jobs:
       - name: Tests
         run: |
           set -o pipefail
-          node --test test/ 2>&1 | tee /tmp/test-output.log
+          npm test 2>&1 | tee /tmp/test-output.log
       - name: Report test failures as annotations
         if: failure()
         run: |
