@@ -1730,6 +1730,8 @@ export function initWizardChess() {
     // Mode & Player Configuration
     let gameMode = 'single'; // 'single' | 'multi'
     let playerColor = 'w';   // 'w' | 'b' | 'spectator'
+    let promotionPreference = 'queen'; // 'queen' | 'rook' | 'knight' | 'bishop' (UI setting)
+    const PROMO_CORE_CHAR = { queen: 'q', rook: 'r', bishop: 'b', knight: 'n' };
     let aiAutoPlay = true;
     let aiTimer = null;
 
@@ -3910,7 +3912,7 @@ export function initWizardChess() {
           toC,
           capture: isCapture,
           isEnPassant,
-          promotion: options.promotion || 'queen'
+          promotion: options.promotion || promotionPreference
         }
       });
 
@@ -4300,13 +4302,14 @@ export function initWizardChess() {
           wizardChessAudio.playPiecePlacement(castleRookEndPos, 'rook');
         }
 
-        // Pawn Promotion to Queen
+        // Pawn Promotion (piece type from options.promotion or the UI preference)
         if (piece.type === 'pawn' && (toR === 0 || toR === 7)) {
           scene.remove(piece.mesh);
-          const promoted = instantiatePiece('queen', piece.color, toR, toC);
+          const promoType = options.promotion || promotionPreference;
+          const promoted = instantiatePiece(promoType, piece.color, toR, toC);
           promoted.hasMoved = true;
           boardState[toR][toC] = promoted;
-          wizardChessAudio.playPiecePlacement(endPos, 'queen');
+          wizardChessAudio.playPiecePlacement(endPos, promoType);
         } else {
           piece.mesh.position.copy(endPos);
           piece.mesh.rotation.x = 0;
@@ -4357,10 +4360,12 @@ export function initWizardChess() {
         // disambiguation, promotions, castling and +/# suffixes.
         let san = null;
         if (coreStateBefore) {
+          const promoType = options.promotion || promotionPreference;
+          const promoChar = PROMO_CORE_CHAR[promoType] || 'q';
           const coreMove = coreLegalMoves(coreStateBefore).find((m) =>
             m.from.r === fromR && m.from.c === fromC &&
             m.to.r === toR && m.to.c === toC &&
-            (!m.promotion || m.promotion === 'q')
+            (!m.promotion || m.promotion === promoChar)
           );
           if (coreMove) {
             san = coreMoveToSan(coreStateBefore, coreMove);
@@ -6196,6 +6201,13 @@ export function initWizardChess() {
       getActiveKingThreatAura: () => activeKingThreatAura,
       setBoardStoneTexture: applyBoardStoneTexture,
       getBoardStoneTexture: () => currentBoardStoneLook,
+      setPromotionPiece: (type) => {
+        if (['queen', 'rook', 'knight', 'bishop'].includes(type)) {
+          promotionPreference = type;
+        }
+        return promotionPreference;
+      },
+      getPromotionPiece: () => promotionPreference,
       BOARD_STONE_LOOKS,
       isKingInCheck,
       captureScreenshot: async (filename) => {

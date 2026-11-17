@@ -67,7 +67,7 @@ React 19 · TypeScript · Vite · Three.js · Web Audio API · node:test
 - [x] Рокировки в Chess960
 - [x] ИИ в Web Worker + quiescence search
 - [x] Автодеплой на GitHub Pages
-- [ ] Выбор фигуры при превращении пешки (сейчас всегда ферзь)
+- [x] Выбор фигуры при превращении пешки (ферзь / ладья / слон / конь)
 - [ ] Переход на .glb + Draco (Git LFS)
 
 ## 📄 Лицензия

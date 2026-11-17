@@ -38,6 +38,13 @@ export default function App() {
   const [timeControl, setTimeControl] = useState<string>('rapid_10_0');
   const [aiDifficulty, setAiDifficulty] = useState<string>('intermediate');
   const [gameVariant, setGameVariant] = useState<string>('standard');
+  const [promotionPiece, setPromotionPiece] = useState<string>(() => {
+    try {
+      return localStorage.getItem('wizardChess_promotion') || 'queen';
+    } catch (e) {
+      return 'queen';
+    }
+  });
 
   const t = getTranslations(lang);
 
@@ -53,6 +60,9 @@ export default function App() {
     }
     if (api?.getBoardStoneTexture) {
       setBoardStone(api.getBoardStoneTexture());
+    }
+    if (api?.setPromotionPiece) {
+      api.setPromotionPiece(promotionPiece as 'queen' | 'rook' | 'knight' | 'bishop');
     }
     if (api?.getMoveHistoryNotation) {
       setHistoryList(api.getMoveHistoryNotation());
@@ -145,6 +155,12 @@ export default function App() {
   const handleSetVariant = (val: string) => {
     setGameVariant(val);
     wizardChessRef.current?.setVariant?.(val);
+  };
+
+  const handleSetPromotionPiece = (val: string) => {
+    setPromotionPiece(val);
+    try { localStorage.setItem('wizardChess_promotion', val); } catch (e) {}
+    wizardChessRef.current?.setPromotionPiece?.(val as 'queen' | 'rook' | 'knight' | 'bishop');
   };
 
   const handleToggleLanguage = () => {
@@ -643,6 +659,32 @@ export default function App() {
                     <span className="segment-icon" aria-hidden="true">🎲</span>
                     <span>{t.variant960}</span>
                   </button>
+                </div>
+              </div>
+
+              {/* Promotion Piece Choice */}
+              <div className="menu-setting-group">
+                <div className="menu-setting-label">♛ {t.promotionLabel}</div>
+                <div className="menu-segments-row" role="radiogroup" aria-label={t.promotionLabel}>
+                  {([
+                    { id: 'queen', icon: '♕', label: t.promoQueen },
+                    { id: 'rook', icon: '♖', label: t.promoRook },
+                    { id: 'bishop', icon: '♗', label: t.promoBishop },
+                    { id: 'knight', icon: '♘', label: t.promoKnight }
+                  ] as const).map((pp) => (
+                    <button
+                      key={pp.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={promotionPiece === pp.id}
+                      className={`menu-segment-btn ${promotionPiece === pp.id ? 'active' : ''}`}
+                      onClick={() => handleSetPromotionPiece(pp.id)}
+                      title={pp.label}
+                    >
+                      <span className="segment-icon" aria-hidden="true">{pp.icon}</span>
+                      <span>{pp.label}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>

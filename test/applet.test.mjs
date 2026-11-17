@@ -428,3 +428,22 @@ test('Dead multiplayer code removed: no room sync, cloud API, or lobby-multi lis
   assert.ok(engineJs.includes('openLobbyModal'), 'lobby modal (script tab) must remain');
   assert.ok(engineJs.includes('function disposeWizardChess('), 'dispose teardown must remain');
 });
+
+test('Promotion piece choice: engine preference, SAN correctness, UI selector', () => {
+  const engineJs = fs.readFileSync(path.join(ROOT, 'src/wizardChessEngine.js'), 'utf-8');
+  const appTsx = fs.readFileSync(path.join(ROOT, 'src/App.tsx'), 'utf-8');
+  const i18nTs = fs.readFileSync(path.join(ROOT, 'src/i18n.ts'), 'utf-8');
+  const engineBusTs = fs.readFileSync(path.join(ROOT, 'src/engineBus.ts'), 'utf-8');
+  assert.ok(engineJs.includes("let promotionPreference = 'queen'"), 'engine must track the promotion preference');
+  assert.ok(engineJs.includes('PROMO_CORE_CHAR'), 'SAN must map the chosen piece to a core promo char');
+  assert.ok(engineJs.includes('promotion: options.promotion || promotionPreference'), 'move record must use the chosen piece');
+  assert.ok(engineJs.includes('const promoType = options.promotion || promotionPreference;'), 'finishMove must instantiate the chosen piece');
+  assert.ok(engineJs.includes('setPromotionPiece:'), 'engine API must expose setPromotionPiece');
+  assert.ok(engineJs.includes('getPromotionPiece:'), 'engine API must expose getPromotionPiece');
+  assert.ok(engineBusTs.includes('setPromotionPiece('), 'WizardChessApi must type setPromotionPiece');
+  assert.ok(appTsx.includes('handleSetPromotionPiece'), 'App must wire the promotion selector');
+  assert.ok(appTsx.includes('promotionPiece === pp.id'), 'selector must highlight the active piece');
+  assert.ok(i18nTs.includes('promotionLabel'), 'i18n must include promotionLabel');
+  assert.ok(i18nTs.includes("promotionLabel: 'Превращение пешки'"), 'ru translation required');
+  assert.ok(i18nTs.includes("promoKnight: 'Конь'"), 'ru piece names required');
+});

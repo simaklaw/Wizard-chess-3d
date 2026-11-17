@@ -95,6 +95,8 @@ export interface WizardChessApi {
   setVariant(variant: string, layoutIdx?: number): void;
   setBoardStoneTexture(styleId: string): string;
   getBoardStoneTexture(): string;
+  setPromotionPiece(type: 'queen' | 'rook' | 'knight' | 'bishop'): 'queen' | 'rook' | 'knight' | 'bishop';
+  getPromotionPiece(): 'queen' | 'rook' | 'knight' | 'bishop';
   toggleSound(): boolean;
   isSoundEnabled(): boolean;
   getMoveHistoryNotation(): MoveRow[];
