@@ -297,7 +297,7 @@ test('En Passant, Pawn Promotion, and Disambiguated Algebraic Notation are verif
 
   // 2. Pawn Promotion
   assert.ok(engineJs.includes("piece.type === 'pawn' && (toR === 0 || toR === 7)"), 'finishMove must detect pawn promotion');
-  assert.ok(engineJs.includes("instantiatePiece('queen', piece.color, toR, toC)"), 'finishMove must promote pawn to queen');
+  assert.ok(engineJs.includes('instantiatePiece(promoType, piece.color, toR, toC)'), 'finishMove must promote the pawn to the chosen piece (queen/rook/bishop/knight)');
   const rulesJs = fs.readFileSync(path.join(ROOT, 'src/chess/rules.js'), 'utf-8');
   assert.ok(
     rulesJs.includes("for (const promo of ['q', 'r', 'b', 'n'])"),
