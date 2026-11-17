@@ -26,6 +26,24 @@ export default function App() {
   const [previewPly, setPreviewPly] = useState<number | null>(null);
   const [isTourActive, setIsTourActive] = useState(false);
   const [restoredNotice, setRestoredNotice] = useState(false);
+  const [theme, setTheme] = useState<string>(() => {
+    try {
+      return localStorage.getItem('wizardChess_theme') || 'sanctum';
+    } catch (e) {
+      return 'sanctum';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('wizardChess_theme', theme);
+    } catch (e) {
+      /* storage unavailable */
+    }
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', theme === 'dark-gold' ? '#0a0703' : '#080a0f');
+  }, [theme]);
 
   const [boardStone, setBoardStone] = useState<string>(() => {
     try {
@@ -172,6 +190,10 @@ export default function App() {
     setPromotionPiece(val);
     try { localStorage.setItem('wizardChess_promotion', val); } catch (e) {}
     wizardChessRef.current?.setPromotionPiece?.(val as 'queen' | 'rook' | 'knight' | 'bishop');
+  };
+
+  const handleToggleTheme = () => {
+    setTheme((prev) => (prev === 'dark-gold' ? 'sanctum' : 'dark-gold'));
   };
 
   const handleToggleLanguage = () => {
@@ -1019,6 +1041,15 @@ export default function App() {
                   onClick={() => setDrawerOpen(false)}
                 >
                   {t.hideUI}
+                </button>
+
+                <button
+                  className={`hud-btn ${theme === 'dark-gold' ? 'active' : ''}`}
+                  id="btn-theme-toggle"
+                  title={t.themeToggleTitle}
+                  onClick={handleToggleTheme}
+                >
+                  🎨 {theme === 'dark-gold' ? t.themeDarkGold : t.themeSanctum}
                 </button>
 
                 <button

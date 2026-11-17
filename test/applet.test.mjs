@@ -516,3 +516,18 @@ test('Offline mode: service worker caches the app shell and registration is wire
   assert.ok(mainTsx.includes('navigator.serviceWorker') && mainTsx.includes('.register('), 'main must register the service worker');
   assert.ok(mainTsx.includes("new URL('sw.js', window.location.href)"), 'registration must resolve sw.js relative to the page');
 });
+
+test('Dark Gold theme: themeable CSS variables, toggle button, persistence', () => {
+  const stylesCss = fs.readFileSync(path.join(ROOT, 'src/styles.css'), 'utf-8');
+  const appTsx = fs.readFileSync(path.join(ROOT, 'src/App.tsx'), 'utf-8');
+  const i18nTs = fs.readFileSync(path.join(ROOT, 'src/i18n.ts'), 'utf-8');
+  assert.ok(stylesCss.includes('--gold-rgb: 212, 175, 55;'), 'base palette must expose gold as an RGB variable');
+  assert.ok(stylesCss.includes('rgba(var(--gold-rgb),'), 'gold accents must use the RGB variable');
+  assert.ok(stylesCss.includes('--panel-rgb'), 'panel backgrounds must be themeable');
+  assert.ok(stylesCss.includes("html[data-theme='dark-gold']"), 'dark-gold theme block must exist');
+  assert.ok(appTsx.includes('btn-theme-toggle'), 'App must include the theme toggle button');
+  assert.ok(appTsx.includes('handleToggleTheme'), 'App must wire the theme toggle handler');
+  assert.ok(appTsx.includes("localStorage.getItem('wizardChess_theme')"), 'theme choice must persist in localStorage');
+  assert.ok(appTsx.includes("setAttribute('data-theme', theme)"), 'theme must be applied to the document root');
+  assert.ok(i18nTs.includes("themeDarkGold: 'Тема: Тёмное золото'"), 'ru translation for the dark-gold theme');
+});
