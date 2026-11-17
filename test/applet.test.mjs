@@ -531,3 +531,14 @@ test('Dark Gold theme: themeable CSS variables, toggle button, persistence', () 
   assert.ok(appTsx.includes("setAttribute('data-theme', theme)"), 'theme must be applied to the document root');
   assert.ok(i18nTs.includes("themeDarkGold: 'Тема: Тёмное золото'"), 'ru translation for the dark-gold theme');
 });
+
+test('Small polish: favicon, color-scheme, document lang sync, reduced motion, aria label', () => {
+  const indexHtml = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf-8');
+  const appTsx = fs.readFileSync(path.join(ROOT, 'src/App.tsx'), 'utf-8');
+  const stylesCss = fs.readFileSync(path.join(ROOT, 'src/styles.css'), 'utf-8');
+  assert.ok(indexHtml.includes('rel="icon"'), 'index.html must declare an inline SVG favicon');
+  assert.ok(indexHtml.includes('color-scheme'), 'index.html must declare a dark color-scheme');
+  assert.ok(appTsx.includes('document.documentElement.lang'), 'App must keep the document lang in sync');
+  assert.ok(appTsx.includes('aria-label={t.themeToggleTitle}'), 'theme toggle must have an accessible label');
+  assert.ok(stylesCss.includes('prefers-reduced-motion'), 'HUD must respect reduced motion preference');
+});

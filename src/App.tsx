@@ -45,6 +45,11 @@ export default function App() {
     if (meta) meta.setAttribute('content', theme === 'dark-gold' ? '#0a0703' : '#080a0f');
   }, [theme]);
 
+  // Keep the document language attribute in sync with the UI language.
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
   const [boardStone, setBoardStone] = useState<string>(() => {
     try {
       return localStorage.getItem('wizardChess_boardStone') || 'obsidian';
@@ -1047,6 +1052,7 @@ export default function App() {
                   className={`hud-btn ${theme === 'dark-gold' ? 'active' : ''}`}
                   id="btn-theme-toggle"
                   title={t.themeToggleTitle}
+                  aria-label={t.themeToggleTitle}
                   onClick={handleToggleTheme}
                 >
                   🎨 {theme === 'dark-gold' ? t.themeDarkGold : t.themeSanctum}
