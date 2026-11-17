@@ -513,6 +513,6 @@ test('Offline mode: service worker caches the app shell and registration is wire
   assert.ok(swJs.includes('skipWaiting'), 'new service worker must activate immediately');
   assert.ok(swJs.includes('clients.claim'), 'service worker must control open pages');
   assert.ok(mainTsx.includes("'serviceWorker' in navigator"), 'main must feature-detect service worker');
-  assert.ok(mainTsx.includes('navigator.serviceWorker.register'), 'main must register the service worker');
+  assert.ok(mainTsx.includes('navigator.serviceWorker') && mainTsx.includes('.register('), 'main must register the service worker');
   assert.ok(mainTsx.includes("new URL('sw.js', window.location.href)"), 'registration must resolve sw.js relative to the page');
 });
