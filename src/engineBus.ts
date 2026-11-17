@@ -120,5 +120,7 @@ export interface WizardChessApi {
   restoreSavedGame(): boolean;
   clearSavedGame(): void;
   hasSavedGame(): boolean;
+  /** Full game in PGN format (headers + movetext + result). */
+  getGamePgn(): string;
   [key: string]: unknown;
 }
