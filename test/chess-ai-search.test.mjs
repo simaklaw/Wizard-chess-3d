@@ -1,6 +1,6 @@
 /**
  * Regression tests for the pure AI search (src/chess/aiSearch.js).
- * Run: node --test test/
+ * Run: npm test
  */
 
 import { test } from 'node:test';
