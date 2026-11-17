@@ -2101,6 +2101,145 @@ export function initWizardChess() {
     }
 
     // =========================================================================
+    // Saved Game Persistence (localStorage): auto-save after every move,
+    // auto-restore on startup, cleared on explicit new games.
+    // =========================================================================
+    const SAVED_GAME_KEY = 'wizardChess_savedGame_v1';
+
+    function serializeGame() {
+      return {
+        version: 1,
+        savedAt: Date.now(),
+        variant: currentVariant,
+        chess960LayoutIndex: currentChess960Layout ? currentChess960Layout.layoutIndex : null,
+        playerColor,
+        timeControl: currentTimeControl,
+        difficulty: currentDifficulty,
+        repetitionCounts: { ...repetitionCounts },
+        moveHistoryNotation: moveHistoryNotation.map((row) => ({ ...row })),
+        moveHistory: moveHistory.map((entry) => ({
+          move: entry.move ? { ...entry.move } : null,
+          san: entry.san || '',
+          snapshot: entry.snapshot,
+          snapshotAfter: entry.snapshotAfter,
+          positionKeyAfter: entry.positionKeyAfter || null
+        })),
+        liveSnapshot: captureBoardSnapshot()
+      };
+    }
+
+    function saveGameToStorage() {
+      try {
+        if (scriptedGameActive) return false;
+        if (moveHistory.length === 0) {
+          clearSavedGame();
+          return false;
+        }
+        localStorage.setItem(SAVED_GAME_KEY, JSON.stringify(serializeGame()));
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function clearSavedGame() {
+      try {
+        localStorage.removeItem(SAVED_GAME_KEY);
+      } catch (e) {}
+    }
+
+    function hasSavedGame() {
+      try {
+        return Boolean(localStorage.getItem(SAVED_GAME_KEY));
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function restoreSavedGame() {
+      let data = null;
+      try {
+        data = JSON.parse(localStorage.getItem(SAVED_GAME_KEY) || 'null');
+      } catch (e) {
+        data = null;
+      }
+      if (!data || data.version !== 1 || !Array.isArray(data.moveHistory) || data.moveHistory.length === 0) {
+        return false;
+      }
+      const valid = data.moveHistory.every((entry) =>
+        entry && entry.move && entry.snapshot && entry.snapshotAfter &&
+        Array.isArray(entry.snapshot.cells) && Array.isArray(entry.snapshotAfter.cells)
+      );
+      if (!valid) return false;
+
+      currentVariant = data.variant === 'chess960' ? 'chess960' : 'standard';
+      if (currentVariant === 'chess960') {
+        const idx = typeof data.chess960LayoutIndex === 'number' ? data.chess960LayoutIndex : -1;
+        currentChess960Layout = generateChess960BackRow(idx);
+      } else {
+        currentChess960Layout = null;
+      }
+      playerColor = data.playerColor === 'b' ? 'b' : 'w';
+      if (data.timeControl && TIME_CONTROLS[data.timeControl]) {
+        currentTimeControl = data.timeControl;
+      }
+      if (typeof data.difficulty === 'string') {
+        currentDifficulty = data.difficulty;
+      }
+
+      moveHistory = data.moveHistory.map((entry) => ({ ...entry }));
+      moveHistoryNotation.length = 0;
+      for (const row of (Array.isArray(data.moveHistoryNotation) ? data.moveHistoryNotation : [])) {
+        moveHistoryNotation.push({ moveNumber: row.moveNumber, white: row.white, black: row.black });
+      }
+      repetitionCounts = (data.repetitionCounts && typeof data.repetitionCounts === 'object')
+        ? { ...data.repetitionCounts }
+        : {};
+      previewingPly = null;
+      liveGameSnapshot = null;
+      scriptCursor = 0;
+      scriptedGameActive = false;
+      scriptDeviated = false;
+
+      const snap = (data.liveSnapshot && Array.isArray(data.liveSnapshot.cells))
+        ? data.liveSnapshot
+        : moveHistory[moveHistory.length - 1].snapshotAfter;
+      restoreBoardSnapshot(snap);
+      updateMoveHistoryDOM();
+      try {
+        emitEngineEvent('historyChanged', { history: moveHistoryNotation.map((row) => ({ ...row })) });
+      } catch (e) {}
+      try {
+        emitEngineEvent('previewChanged', { previewingPly: null, totalPlies: moveHistory.length });
+      } catch (e) {}
+
+      const lastEntry = moveHistory[moveHistory.length - 1];
+      if (lastEntry && lastEntry.move) {
+        updateLastMoveHighlight(lastEntry.move.fromR, lastEntry.move.fromC, lastEntry.move.toR, lastEntry.move.toC);
+      }
+
+      const viewSide = playerColor === 'b' ? 'b' : 'w';
+      playerCamSide = viewSide;
+      setActiveCamButton('btn-cam-player');
+      setCameraForSide(viewSide, false);
+
+      try {
+        emitEngineEvent('savedGameRestored', {
+          variant: currentVariant,
+          timeControl: currentTimeControl,
+          difficulty: currentDifficulty,
+          playerColor
+        });
+      } catch (e) {}
+
+      if (!activeCathedralTour) {
+        startMatchClocks();
+      }
+      maybeScheduleAIMove();
+      return true;
+    }
+
+    // =========================================================================
     // Interactive Move History Position Preview & Undo
     // =========================================================================
     let previewingPly = null;
@@ -2264,6 +2403,7 @@ export function initWizardChess() {
           clearLastMoveHighlight();
         }
         updateMoveHistoryDOM();
+        saveGameToStorage();
         wizardChessAudio.playPiecePlacement(boardToWorld(3, 3), 'pawn');
         return true;
       }
@@ -4390,6 +4530,7 @@ export function initWizardChess() {
         currentTurn = nextTurn;
         isAnimatingMove = false;
         updateTurnUI();
+        saveGameToStorage();
         maybeScheduleAIMove();
       }
 
@@ -5859,10 +6000,12 @@ export function initWizardChess() {
     document.getElementById('btn-side-toggle')?.addEventListener('click', () => {
       if (gameMode !== 'single') return;
       playerColor = playerColor === 'w' ? 'b' : 'w';
+      clearSavedGame();
       resetChessBoard(true, scriptedGameActive);
     });
 
     document.getElementById('btn-reset')?.addEventListener('click', () => {
+      clearSavedGame();
       resetChessBoard(true, false);
     });
 
@@ -5953,6 +6096,7 @@ export function initWizardChess() {
       triggerCheckmateSequence(defCol, winCol);
     });
     document.getElementById('btn-checkmate-newgame')?.addEventListener('click', () => {
+      clearSavedGame();
       resetChessBoard(true, false);
     });
     document.getElementById('btn-checkmate-dismiss')?.addEventListener('click', () => {
@@ -6066,6 +6210,7 @@ export function initWizardChess() {
         scriptedGameActive = false;
         gameMode = 'single';
         playerColor = color === 'b' ? 'b' : 'w';
+        clearSavedGame();
         resetChessBoard(true);
       },
       setupCustomScenario: (pieces, turn = 'w') => {
@@ -6184,6 +6329,7 @@ export function initWizardChess() {
         currentVariant = v;
         if (v === 'chess960') currentChess960Layout = generateChess960BackRow(layoutIdx);
         else currentChess960Layout = null;
+        clearSavedGame();
         resetChessBoard(true);
       },
       getVariant: () => currentVariant,
@@ -6214,6 +6360,10 @@ export function initWizardChess() {
         return promotionPreference;
       },
       getPromotionPiece: () => promotionPreference,
+      saveGameToStorage,
+      restoreSavedGame,
+      clearSavedGame,
+      hasSavedGame,
       BOARD_STONE_LOOKS,
       isKingInCheck,
       captureScreenshot: async (filename) => {
@@ -6768,12 +6918,18 @@ export function initWizardChess() {
         playerColor = 'b';
       }
       resetChessBoard(true, true);
+      let restoredGame = false;
+      if (!navigator.webdriver) {
+        try { restoredGame = restoreSavedGame(); } catch (e) { restoredGame = false; }
+      }
       if (navigator.webdriver) {
         startMatchClocks();
         window.wizardChess.stepBy(0.9, 15);
       } else {
         animate();
-        startCathedralTour();
+        if (!restoredGame) {
+          startCathedralTour();
+        }
       }
     })();
 

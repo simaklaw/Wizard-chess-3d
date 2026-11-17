@@ -28,6 +28,13 @@ export interface EngineEventMap {
   tourStarted: Record<string, never>;
   /** Cathedral cinematic tour finished */
   tourFinished: { openMenu?: boolean; immediate?: boolean };
+  /** A saved game was restored from localStorage on startup */
+  savedGameRestored: {
+    variant: string;
+    timeControl: string;
+    difficulty: string;
+    playerColor: 'w' | 'b';
+  };
 }
 
 export type EngineEventName = keyof EngineEventMap;
@@ -108,5 +115,10 @@ export interface WizardChessApi {
   toggleUI(force?: boolean): void;
   /** Full teardown of the engine (renderer, resources, worker, listeners). */
   dispose?(): void;
+  /** Saved-game persistence (localStorage auto-save). */
+  saveGameToStorage(): boolean;
+  restoreSavedGame(): boolean;
+  clearSavedGame(): void;
+  hasSavedGame(): boolean;
   [key: string]: unknown;
 }

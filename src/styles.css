@@ -1756,3 +1756,87 @@ body.cinematic-ui-hidden .skip-tour-btn {
 }
 
 
+
+/* =========================================================================
+   Mobile Polish: safe areas, touch targets, tap feedback, overscroll
+   ========================================================================= */
+html, body {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, select {
+  touch-action: manipulation;
+}
+
+.mobile-touch-hint {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-touch-hint {
+    display: flex;
+  }
+
+  /* Keyboard shortcuts are meaningless on touch screens */
+  .keyboard-shortcuts-grid {
+    display: none;
+  }
+
+  /* Comfortable touch targets */
+  .hud-btn,
+  .menu-chip-btn,
+  .menu-ladder-btn,
+  .menu-segment-btn,
+  .drawer-tab-btn {
+    min-height: 40px;
+  }
+
+  .drawer-tab-btn {
+    padding: 10px 4px;
+  }
+
+  .drawer-close-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+  }
+
+  /* Keep the preview / restored banners below the taller mobile HUD */
+  .history-preview-banner {
+    top: 96px;
+  }
+
+  .preview-banner-text {
+    white-space: normal;
+    text-align: center;
+    max-width: 70vw;
+  }
+
+  /* iOS notched-device safe areas */
+  #hud-top {
+    top: calc(10px + env(safe-area-inset-top, 0px));
+  }
+
+  #hud-bottom {
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .side-drawer {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .drawer-body {
+    padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Touch press feedback */
+  .hud-btn:active,
+  .menu-chip-btn:active,
+  .menu-ladder-btn:active,
+  .menu-segment-btn:active,
+  .history-cell-btn:active {
+    transform: scale(0.97);
+  }
+}

@@ -456,3 +456,28 @@ test('Promotion: AI search and notation script moves honor their own promotion p
   assert.ok(engineJs.includes('promotion: mv.promotion'), 'deferred script moves must pass the parsed promotion piece');
   assert.ok(engineJs.includes('promotion: nextMove.promotion'), 'direct script steps must pass the parsed promotion piece');
 });
+
+test('Saved game persistence and mobile polish are verified', () => {
+  const engineJs = fs.readFileSync(path.join(ROOT, 'src/wizardChessEngine.js'), 'utf-8');
+  const appTsx = fs.readFileSync(path.join(ROOT, 'src/App.tsx'), 'utf-8');
+  const stylesCss = fs.readFileSync(path.join(ROOT, 'src/styles.css'), 'utf-8');
+  const i18nTs = fs.readFileSync(path.join(ROOT, 'src/i18n.ts'), 'utf-8');
+  const engineBusTs = fs.readFileSync(path.join(ROOT, 'src/engineBus.ts'), 'utf-8');
+  const indexHtml = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf-8');
+  assert.ok(engineJs.includes("const SAVED_GAME_KEY = 'wizardChess_savedGame_v1'"), 'engine must define the saved-game storage key');
+  assert.ok(engineJs.includes('function serializeGame('), 'engine must serialize the full game (history + snapshots + clocks)');
+  assert.ok(engineJs.includes('liveSnapshot: captureBoardSnapshot()'), 'serialization must include the live board snapshot');
+  assert.ok(engineJs.includes('function saveGameToStorage('), 'engine must auto-save to localStorage');
+  assert.ok(engineJs.includes('function restoreSavedGame('), 'engine must restore the saved game on startup');
+  assert.ok(engineJs.includes('function clearSavedGame('), 'engine must clear the save on explicit new games');
+  assert.ok(engineJs.includes('restoredGame = restoreSavedGame()'), 'startup sequence must attempt restore');
+  assert.ok(engineBusTs.includes('savedGameRestored'), 'event bus must declare savedGameRestored');
+  assert.ok(appTsx.includes("onEngineEvent('savedGameRestored'"), 'App must sync settings from the restored save');
+  assert.ok(appTsx.includes('restored-game-banner'), 'App must show the restored-game notice');
+  assert.ok(appTsx.includes('mobile-touch-hint'), 'App must include the mobile touch hint card');
+  assert.ok(i18nTs.includes("savedGameRestored: 'Партия восстановлена'"), 'ru translation for the restored notice');
+  assert.ok(stylesCss.includes('touch-action: manipulation'), 'buttons need touch-action manipulation on mobile');
+  assert.ok(stylesCss.includes('env(safe-area-inset-top'), 'mobile styles must respect safe-area insets');
+  assert.ok(stylesCss.includes('.mobile-touch-hint'), 'mobile touch hint must be styled');
+  assert.ok(indexHtml.includes('viewport-fit=cover'), 'viewport must cover notched devices');
+});
