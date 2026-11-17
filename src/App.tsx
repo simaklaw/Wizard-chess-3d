@@ -25,6 +25,7 @@ export default function App() {
   const [historyList, setHistoryList] = useState<MoveRow[]>([]);
   const [previewPly, setPreviewPly] = useState<number | null>(null);
   const [isTourActive, setIsTourActive] = useState(false);
+  const [restoredNotice, setRestoredNotice] = useState(false);
 
   const [boardStone, setBoardStone] = useState<string>(() => {
     try {
@@ -104,6 +105,16 @@ export default function App() {
   useEffect(() => {
     return onEngineEvent('previewChanged', (payload) => {
       setPreviewPly(payload.previewingPly ?? null);
+    });
+  }, []);
+
+  useEffect(() => {
+    return onEngineEvent('savedGameRestored', (payload) => {
+      if (payload.variant) setGameVariant(payload.variant);
+      if (payload.timeControl) setTimeControl(payload.timeControl);
+      if (payload.difficulty) setAiDifficulty(payload.difficulty);
+      setRestoredNotice(true);
+      window.setTimeout(() => setRestoredNotice(false), 4200);
     });
   }, []);
 
@@ -349,6 +360,16 @@ export default function App() {
           ></button>
         </div>
       </div>
+
+      {/* Saved-game restored notice */}
+      {restoredNotice && (
+        <div id="restored-game-banner" className="history-preview-banner" role="status">
+          <div className="preview-banner-content">
+            <span className="preview-banner-badge" aria-hidden="true">💾</span>
+            <span className="preview-banner-text">{t.savedGameRestored}</span>
+          </div>
+        </div>
+      )}
 
       {/* Floating History Preview Banner when reviewing earlier plies */}
       {previewPly !== null && (
@@ -985,6 +1006,11 @@ export default function App() {
               <div className="drawer-hint-card" id="controls-hint">
                 <div className="hint-header">ℹ️ {t.controlsGuideTitle}</div>
                 <div className="hint-content">{t.controlsHint}</div>
+              </div>
+
+              <div className="drawer-hint-card mobile-touch-hint" id="mobile-touch-hint">
+                <div className="hint-header">📱 {t.controlsMobile}</div>
+                <div className="hint-content">{t.mobileTouchHint}</div>
               </div>
 
               <div className="keyboard-shortcuts-grid">

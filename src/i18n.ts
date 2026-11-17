@@ -100,6 +100,7 @@ export interface Translations {
   promoRook: string;
   promoBishop: string;
   promoKnight: string;
+  savedGameRestored: string;
   controlsGuideTitle: string;
 
   // Interactive History Navigation & Last Move
@@ -215,6 +216,7 @@ export const translations: Record<Language, Translations> = {
     promoRook: 'Rook',
     promoBishop: 'Bishop',
     promoKnight: 'Knight',
+    savedGameRestored: 'Game restored',
     controlsGuideTitle: 'Controls Guide',
 
     returnToLiveGame: 'Return to Live Game',
@@ -325,6 +327,7 @@ export const translations: Record<Language, Translations> = {
     promoRook: 'Ладья',
     promoBishop: 'Слон',
     promoKnight: 'Конь',
+    savedGameRestored: 'Партия восстановлена',
     controlsGuideTitle: 'Справка по управлению',
 
     returnToLiveGame: 'Вернуться к игре',
