@@ -102,6 +102,9 @@ export interface Translations {
   promoKnight: string;
   savedGameRestored: string;
   exportPgn: string;
+  themeToggleTitle: string;
+  themeSanctum: string;
+  themeDarkGold: string;
   controlsGuideTitle: string;
 
   // Interactive History Navigation & Last Move
@@ -219,6 +222,9 @@ export const translations: Record<Language, Translations> = {
     promoKnight: 'Knight',
     savedGameRestored: 'Game restored',
     exportPgn: 'Export PGN',
+    themeToggleTitle: 'Switch color theme',
+    themeSanctum: 'Theme: Sanctum',
+    themeDarkGold: 'Theme: Dark Gold',
     controlsGuideTitle: 'Controls Guide',
 
     returnToLiveGame: 'Return to Live Game',
@@ -331,6 +337,9 @@ export const translations: Record<Language, Translations> = {
     promoKnight: 'Конь',
     savedGameRestored: 'Партия восстановлена',
     exportPgn: 'Экспорт PGN',
+    themeToggleTitle: 'Переключить цветовую тему',
+    themeSanctum: 'Тема: Святилище',
+    themeDarkGold: 'Тема: Тёмное золото',
     controlsGuideTitle: 'Справка по управлению',
 
     returnToLiveGame: 'Вернуться к игре',
