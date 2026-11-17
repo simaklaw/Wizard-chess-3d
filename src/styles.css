@@ -1840,3 +1840,39 @@ button, select {
     transform: scale(0.97);
   }
 }
+
+/* =========================================================================
+   PGN Export Button (Move History toolbar)
+   ========================================================================= */
+.history-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(18, 23, 35, 0.88);
+  border: 1px solid rgba(223, 183, 67, 0.22);
+  border-radius: 999px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.history-export-btn:hover:not(:disabled) {
+  background: rgba(26, 33, 50, 0.95);
+  border-color: rgba(223, 183, 67, 0.50);
+  color: var(--gold-bright);
+}
+
+.history-export-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.history-export-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

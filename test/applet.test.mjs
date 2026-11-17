@@ -481,3 +481,25 @@ test('Saved game persistence and mobile polish are verified', () => {
   assert.ok(stylesCss.includes('.mobile-touch-hint'), 'mobile touch hint must be styled');
   assert.ok(indexHtml.includes('viewport-fit=cover'), 'viewport must cover notched devices');
 });
+
+test('PGN export: engine builder, headers, result and UI download button', () => {
+  const engineJs = fs.readFileSync(path.join(ROOT, 'src/wizardChessEngine.js'), 'utf-8');
+  const appTsx = fs.readFileSync(path.join(ROOT, 'src/App.tsx'), 'utf-8');
+  const stylesCss = fs.readFileSync(path.join(ROOT, 'src/styles.css'), 'utf-8');
+  const i18nTs = fs.readFileSync(path.join(ROOT, 'src/i18n.ts'), 'utf-8');
+  const engineBusTs = fs.readFileSync(path.join(ROOT, 'src/engineBus.ts'), 'utf-8');
+  assert.ok(engineJs.includes('function getGameResult('), 'engine must compute the PGN result tag');
+  assert.ok(engineJs.includes("if (checkmateState.winnerColor === 'w') return '1-0';"), 'checkmate must map to 1-0/0-1');
+  assert.ok(engineJs.includes("return '1/2-1/2';"), 'stalemate and draws must map to 1/2-1/2');
+  assert.ok(engineJs.includes('function getGamePgn('), 'engine must build a PGN string');
+  assert.ok(engineJs.includes('[Event "Wizard Chess 3D"]'), 'PGN must include the Event header');
+  assert.ok(engineJs.includes('[Variant "Chess960"]'), 'Chess960 games must declare the variant');
+  assert.ok(engineJs.includes('function chess960StartFen('), 'Chess960 PGN must embed the starting FEN');
+  assert.ok(engineJs.includes('getGamePgn,'), 'engine API must expose getGamePgn');
+  assert.ok(engineBusTs.includes('getGamePgn(): string;'), 'WizardChessApi must type getGamePgn');
+  assert.ok(appTsx.includes('handleExportPgn'), 'App must wire the export handler');
+  assert.ok(appTsx.includes('btn-export-pgn'), 'history toolbar must include the export button');
+  assert.ok(appTsx.includes('application/x-chess-pgn'), 'download must use the PGN mime type');
+  assert.ok(i18nTs.includes("exportPgn: 'Экспорт PGN'"), 'ru translation for the export button');
+  assert.ok(stylesCss.includes('.history-export-btn'), 'export button must be styled');
+});

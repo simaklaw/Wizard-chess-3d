@@ -202,6 +202,24 @@ export default function App() {
     wizardChessRef.current?.returnToLiveGame?.();
   };
 
+  const handleExportPgn = () => {
+    const pgn = wizardChessRef.current?.getGamePgn?.();
+    if (!pgn) return;
+    try {
+      const blob = new Blob([pgn], { type: 'application/x-chess-pgn' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const d = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      a.href = url;
+      a.download = 'wizard-chess-' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '.pgn';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch (e) {}
+  };
+
   const handleZoomOut = () => {
     wizardChessRef.current?.zoomOut?.();
   };
@@ -740,6 +758,19 @@ export default function App() {
                     <span>{t.moveHistoryTitle}</span>
                     <span id="history-count-badge" className="history-count-badge">{totalPlies}</span>
                     <span className="history-chevron" aria-hidden="true">{historyExpanded ? '▼' : '▲'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    id="btn-export-pgn"
+                    className="history-export-btn"
+                    onClick={handleExportPgn}
+                    disabled={totalPlies === 0}
+                    title={t.exportPgn}
+                    aria-label={t.exportPgn}
+                  >
+                    <span aria-hidden="true">📤</span>
+                    <span>{t.exportPgn}</span>
                   </button>
                 </div>
 

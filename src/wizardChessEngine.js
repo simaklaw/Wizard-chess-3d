@@ -2156,6 +2156,67 @@ export function initWizardChess() {
       }
     }
 
+    // =========================================================================
+    // PGN Export: standard game download with headers, movetext and result
+    // =========================================================================
+    function getGameResult() {
+      if (!gameOver) return '*';
+      if (checkmateState.winnerColor === 'w') return '1-0';
+      if (checkmateState.winnerColor === 'b') return '0-1';
+      return '1/2-1/2';
+    }
+
+    function chess960StartFen() {
+      if (!currentChess960Layout || !Array.isArray(currentChess960Layout.row)) return null;
+      const CHAR = { king: 'k', queen: 'q', rook: 'r', bishop: 'b', knight: 'n' };
+      const backLower = currentChess960Layout.row.map((t) => CHAR[t] || '?').join('');
+      if (backLower.indexOf('?') !== -1) return null;
+      return backLower + '/pppppppp/8/8/8/8/PPPPPPPP/' + backLower.toUpperCase() + ' w AHah - 0 1';
+    }
+
+    function getGamePgn() {
+      const result = getGameResult();
+      const lines = [];
+      lines.push('[Event "Wizard Chess 3D"]');
+      lines.push('[Site "simaklaw.github.io/Wizard-chess-3d"]');
+      const d = new Date();
+      const pad2 = (n) => String(n).padStart(2, '0');
+      lines.push('[Date "' + d.getFullYear() + '.' + pad2(d.getMonth() + 1) + '.' + pad2(d.getDate()) + '"]');
+      const aiName = 'AI (' + currentDifficulty + ')';
+      lines.push('[White "' + (playerColor === 'w' ? 'Player' : aiName) + '"]');
+      lines.push('[Black "' + (playerColor === 'b' ? 'Player' : aiName) + '"]');
+      if (currentVariant === 'chess960') {
+        lines.push('[Variant "Chess960"]');
+        const fen = chess960StartFen();
+        if (fen) {
+          lines.push('[SetUp "1"]');
+          lines.push('[FEN "' + fen + '"]');
+        }
+      }
+      lines.push('[Result "' + result + '"]');
+
+      const words = [];
+      for (const row of moveHistoryNotation) {
+        if (row.white) words.push(row.moveNumber + '. ' + row.white);
+        if (row.black) words.push(String(row.black));
+      }
+      words.push(result);
+
+      const bodyLines = [];
+      let line = '';
+      for (const w of words) {
+        if (line && (line + ' ' + w).length > 80) {
+          bodyLines.push(line);
+          line = w;
+        } else {
+          line = line ? line + ' ' + w : w;
+        }
+      }
+      if (line) bodyLines.push(line);
+
+      return lines.join('\n') + '\n\n' + (bodyLines.join('\n') || result) + '\n';
+    }
+
     function restoreSavedGame() {
       let data = null;
       try {
@@ -6364,6 +6425,7 @@ export function initWizardChess() {
       restoreSavedGame,
       clearSavedGame,
       hasSavedGame,
+      getGamePgn,
       BOARD_STONE_LOOKS,
       isKingInCheck,
       captureScreenshot: async (filename) => {
