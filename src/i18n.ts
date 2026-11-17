@@ -95,6 +95,11 @@ export interface Translations {
   menuButton: string;
   menuTitle: string;
   matchSettings: string;
+  promotionLabel: string;
+  promoQueen: string;
+  promoRook: string;
+  promoBishop: string;
+  promoKnight: string;
   controlsGuideTitle: string;
 
   // Interactive History Navigation & Last Move
@@ -205,6 +210,11 @@ export const translations: Record<Language, Translations> = {
     menuButton: 'Menu',
     menuTitle: 'Sanctum Menu',
     matchSettings: 'Match Settings',
+    promotionLabel: 'Pawn promotion',
+    promoQueen: 'Queen',
+    promoRook: 'Rook',
+    promoBishop: 'Bishop',
+    promoKnight: 'Knight',
     controlsGuideTitle: 'Controls Guide',
 
     returnToLiveGame: 'Return to Live Game',
@@ -310,6 +320,11 @@ export const translations: Record<Language, Translations> = {
     menuButton: 'Меню',
     menuTitle: 'Меню святилища',
     matchSettings: 'Настройки партии',
+    promotionLabel: 'Превращение пешки',
+    promoQueen: 'Ферзь',
+    promoRook: 'Ладья',
+    promoBishop: 'Слон',
+    promoKnight: 'Конь',
     controlsGuideTitle: 'Справка по управлению',
 
     returnToLiveGame: 'Вернуться к игре',
