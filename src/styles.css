@@ -1910,3 +1910,18 @@ html[data-theme='dark-gold'] {
 html[data-theme='dark-gold'] #loading-overlay {
   background: radial-gradient(circle at center, #1c1305 0%, #070402 100%);
 }
+
+/* =========================================================================
+   Accessibility: respect prefers-reduced-motion for HUD animations
+   (the 3D scene itself keeps its cinematic motion)
+   ========================================================================= */
+@media (prefers-reduced-motion: reduce) {
+  #hud-top *,
+  .side-drawer *,
+  #hud-bottom *,
+  #restored-game-banner {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
