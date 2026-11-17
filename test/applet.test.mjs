@@ -447,3 +447,12 @@ test('Promotion piece choice: engine preference, SAN correctness, UI selector', 
   assert.ok(i18nTs.includes("promotionLabel: 'Превращение пешки'"), 'ru translation required');
   assert.ok(i18nTs.includes("promoKnight: 'Конь'"), 'ru piece names required');
 });
+
+test('Promotion: AI search and notation script moves honor their own promotion piece', () => {
+  const engineJs = fs.readFileSync(path.join(ROOT, 'src/wizardChessEngine.js'), 'utf-8');
+  assert.ok(engineJs.includes('PROMO_CORE_TO_TYPE'), 'engine must map core promo chars back to piece types');
+  assert.ok(engineJs.includes('promotion: coreMove.promotion || null'), 'coreMoveToEngineMove must keep the searched promotion piece');
+  assert.ok(engineJs.includes('PROMO_CORE_TO_TYPE[chosen.promotion]'), 'AI moves must apply the searched promotion piece');
+  assert.ok(engineJs.includes('promotion: mv.promotion'), 'deferred script moves must pass the parsed promotion piece');
+  assert.ok(engineJs.includes('promotion: nextMove.promotion'), 'direct script steps must pass the parsed promotion piece');
+});

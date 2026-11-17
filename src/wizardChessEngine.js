@@ -1732,6 +1732,7 @@ export function initWizardChess() {
     let playerColor = 'w';   // 'w' | 'b' | 'spectator'
     let promotionPreference = 'queen'; // 'queen' | 'rook' | 'knight' | 'bishop' (UI setting)
     const PROMO_CORE_CHAR = { queen: 'q', rook: 'r', bishop: 'b', knight: 'n' };
+    const PROMO_CORE_TO_TYPE = { q: 'queen', r: 'rook', b: 'bishop', n: 'knight' };
     let aiAutoPlay = true;
     let aiTimer = null;
 
@@ -4735,6 +4736,7 @@ export function initWizardChess() {
         fromC: coreMove.from.c,
         toR: coreMove.to.r,
         toC: coreMove.to.c,
+        promotion: coreMove.promotion || null,
         capture: Boolean(coreMove.capture || coreMove.isEnPassant)
       };
     }
@@ -4841,7 +4843,10 @@ export function initWizardChess() {
       if (isAnimatingMove || gameOver) return false;
       const chosen = await chooseSmartAIMoveAsync(currentTurn);
       if (!chosen || isAnimatingMove || gameOver) return false;
-      return executeChessMove(chosen.fromR, chosen.fromC, chosen.toR, chosen.toC);
+      const aiPromotion = chosen.promotion
+        ? { promotion: PROMO_CORE_TO_TYPE[chosen.promotion] || 'queen' }
+        : {};
+      return executeChessMove(chosen.fromR, chosen.fromC, chosen.toR, chosen.toC, aiPromotion);
     }
 
     function maybeScheduleAIMove() {
@@ -4936,7 +4941,7 @@ export function initWizardChess() {
         const mv = preMoveHighlightTask.move;
         const fromScriptFlag = Boolean(preMoveHighlightTask.fromScript);
         preMoveHighlightTask = null;
-        executeChessMove(mv.fromR, mv.fromC, mv.toR, mv.toC, { fromScript: fromScriptFlag });
+        executeChessMove(mv.fromR, mv.fromC, mv.toR, mv.toC, { fromScript: fromScriptFlag, promotion: mv.promotion });
       }
       let safety = 0;
       while (activeMoveTweens.length > 0 && safety < 200) {
@@ -5035,7 +5040,8 @@ export function initWizardChess() {
       }
 
       return executeChessMove(nextMove.fromR, nextMove.fromC, nextMove.toR, nextMove.toC, {
-        fromScript: isFromScript
+        fromScript: isFromScript,
+        promotion: nextMove.promotion
       });
     }
 
@@ -6371,7 +6377,7 @@ export function initWizardChess() {
           const mv = preMoveHighlightTask.move;
           const fromScriptFlag = Boolean(preMoveHighlightTask.fromScript);
           preMoveHighlightTask = null;
-          executeChessMove(mv.fromR, mv.fromC, mv.toR, mv.toC, { fromScript: fromScriptFlag });
+          executeChessMove(mv.fromR, mv.fromC, mv.toR, mv.toC, { fromScript: fromScriptFlag, promotion: mv.promotion });
         }
       }
 
