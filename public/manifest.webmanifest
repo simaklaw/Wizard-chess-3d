@@ -1,0 +1,26 @@
+{
+  "name": "Wizard Chess — 3D Sanctum Edition",
+  "short_name": "Wizard Chess",
+  "description": "Interactive 3D Gothic Cathedral Wizard Chess with sculpted stone pieces, spatial 3D audio and cinematic checkmate VFX.",
+  "lang": "en",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#080a0f",
+  "theme_color": "#080a0f",
+  "icons": [
+    {
+      "src": "icon-512.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
