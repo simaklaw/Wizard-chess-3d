@@ -106,6 +106,9 @@ export interface WizardChessApi {
   getPromotionPiece(): 'queen' | 'rook' | 'knight' | 'bishop';
   toggleSound(): boolean;
   isSoundEnabled(): boolean;
+  /** Master volume 0..1 (procedural audio engine). */
+  setVolume(v: number): void;
+  getVolume(): number;
   getMoveHistoryNotation(): MoveRow[];
   updateMoveHistoryDOM(): void;
   previewHistoryPly(idx: number): boolean;

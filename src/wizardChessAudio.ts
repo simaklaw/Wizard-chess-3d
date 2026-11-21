@@ -10,6 +10,7 @@ class WizardChessAudioEngine {
   private masterGain: GainNode | null = null;
   private reverbNode: ConvolverNode | null = null;
   private isMuted: boolean = false;
+  private volume: number = 1;
   private initialized: boolean = false;
   private onStateChangeCallbacks: Array<(enabled: boolean) => void> = [];
 
@@ -19,6 +20,13 @@ class WizardChessAudioEngine {
         const saved = window.localStorage.getItem('wizard_chess_sound_enabled');
         if (saved !== null) {
           this.isMuted = saved === 'false';
+        }
+      } catch (e) {}
+      try {
+        const savedVol = window.localStorage.getItem('wizard_chess_volume');
+        if (savedVol !== null) {
+          const v = parseFloat(savedVol);
+          if (Number.isFinite(v)) this.volume = Math.min(1, Math.max(0, v));
         }
       } catch (e) {}
     }
@@ -32,7 +40,7 @@ class WizardChessAudioEngine {
       if (!AudioCtx) return;
       this.ctx = new AudioCtx();
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.82, this.ctx.currentTime);
+      this.applyGain();
 
       // Create procedural 2.4-second Gothic Cathedral impulse response for authentic vaulted stone acoustics
       this.reverbNode = this.createCathedralImpulseResponse(this.ctx, 2.4, 2.8);
@@ -683,13 +691,33 @@ class WizardChessAudioEngine {
         window.localStorage.setItem('wizard_chess_sound_enabled', String(!this.isMuted));
       } catch (e) {}
     }
-    if (this.masterGain && this.ctx) {
-      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.82, this.ctx.currentTime);
+    this.applyGain();
     }
     for (const cb of this.onStateChangeCallbacks) {
       cb(!this.isMuted);
     }
     return !this.isMuted;
+  }
+
+  // Master volume 0..1 with localStorage persistence
+  public setVolume(v: number): void {
+    this.volume = Math.min(1, Math.max(0, Number(v)));
+    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+      try {
+        window.localStorage.setItem('wizard_chess_volume', String(this.volume));
+      } catch (e) {}
+    }
+    this.applyGain();
+  }
+
+  public getVolume(): number {
+    return this.volume;
+  }
+
+  private applyGain(): void {
+    if (this.masterGain && this.ctx) {
+      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.82 * this.volume, this.ctx.currentTime);
+    }
   }
 
   public isEnabled(): boolean {
