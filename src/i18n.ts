@@ -83,8 +83,7 @@ export interface Translations {
   diffLegend: string;
 
   // Check Laser Threat
-  checkThre
-at: string;
+  checkThreat: string;
 
   // Board Stone Textures
   boardTextureLabel: string;
@@ -155,8 +154,7 @@ export const translations: Record<Language, Translations> = {
     collapseHistory: 'Collapse',
     moveNumber: '#',
     cameraViews: 'Camera Views',
-    cameraViewsS
-ub: 'Tap active view to flip',
+    cameraViewsSub: 'Tap active view to flip',
     camPlayer: 'Player Cam',
     camTop: 'Overhead',
     camSide: 'Side',
@@ -216,8 +214,7 @@ ub: 'Tap active view to flip',
 
     menuButton: 'Menu',
     menuTitle: 'Sanctum Menu',
-   
- matchSettings: 'Match Settings',
+    matchSettings: 'Match Settings',
     promotionLabel: 'Pawn promotion',
     promoQueen: 'Queen',
     promoRook: 'Rook',
@@ -279,8 +276,7 @@ ub: 'Tap active view to flip',
     camWide: 'Собор',
     zoomIn: 'Приблизить (+)',
     zoomOut: 'Отдалить (−)',
-    soundDisplay
-: 'Звук и интерфейс',
+    soundDisplay: 'Звук и интерфейс',
     soundOn: 'Звук: Вкл',
     soundMuted: 'Звук: Выкл',
     hideUI: 'Скрыть интерфейс [H]',
@@ -335,7 +331,6 @@ ub: 'Tap active view to flip',
     menuTitle: 'Меню святилища',
     matchSettings: 'Настройки партии',
     promotionLabel: 'Превращение пешки',
-
     promoQueen: 'Ферзь',
     promoRook: 'Ладья',
     promoBishop: 'Слон',
