@@ -17,6 +17,9 @@ interface MoveRow {
 
 export default function App() {
   const initializedRef = useRef(false);
+  // Focus management for the aria-modal menu drawer.
+  const drawerRef = useRef<HTMLElement | null>(null);
+  const menuBtnRef = useRef<HTMLButtonElement | null>(null);
   const wizardChessRef = useRef<WizardChessApi | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [historyExpanded, setHistoryExpanded] = useState(true);
@@ -163,6 +166,36 @@ export default function App() {
       }
       api?.updateMoveHistoryDOM?.();
     }
+  }, [drawerOpen]);
+
+  // Move focus into the drawer when it opens, trap Tab while open,
+  // and return focus to the menu toggle when it closes.
+  useEffect(() => {
+    const drawer = drawerRef.current;
+    if (!drawerOpen || !drawer) return;
+    const focusables = () => Array.from(
+      drawer.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+    ).filter((el) => !el.hasAttribute('disabled') && el.offsetParent !== null);
+    const first = focusables()[0];
+    if (first) first.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const list = focusables();
+      if (list.length === 0) return;
+      const active = document.activeElement;
+      if (e.shiftKey && (active === list[0] || !drawer.contains(active))) {
+        e.preventDefault();
+        list[list.length - 1].focus();
+      } else if (!e.shiftKey && active === list[list.length - 1]) {
+        e.preventDefault();
+        list[0].focus();
+      }
+    };
+    drawer.addEventListener('keydown', onKey);
+    return () => {
+      drawer.removeEventListener('keydown', onKey);
+      menuBtnRef.current?.focus();
+    };
   }, [drawerOpen]);
 
   useEffect(() => {
@@ -337,7 +370,7 @@ export default function App() {
           <div className="brand-pill">
             <span className="brand-title">{t.brandTitle}</span>
           </div>
-          <div className="status-pill" id="status-pill">
+          <div className="status-pill" id="status-pill" aria-live="polite" aria-atomic="true">
             <span className="turn-dot" id="turn-dot"></span>
             <span id="turn-text">{t.turnWhite}</span>
             <span className="mode-badge" id="mode-badge">{t.playingAsWhite}</span>
@@ -385,6 +418,7 @@ export default function App() {
           <button
             type="button"
             className={`hud-btn hud-menu-btn ${drawerOpen ? 'active' : ''}`}
+            ref={menuBtnRef}
             id="btn-menu-toggle"
             onClick={() => setDrawerOpen((prev) => !prev)}
             aria-expanded={drawerOpen}
@@ -447,6 +481,7 @@ export default function App() {
 
       {/* Unified Side Drawer: Contains Move History, Game Actions, Match Settings, Board Stone, Views & Help */}
       <aside
+        ref={drawerRef}
         id="side-drawer"
         className={`side-drawer ${drawerOpen ? 'open' : ''}`}
         role="dialog"
@@ -571,7 +606,7 @@ export default function App() {
                   title={t.cathedralTour}
                   onClick={handleStartTour}
                 >
-                  🏛 {t.cathedralTour}
+                  <span aria-hidden="true">🏛</span> {t.cathedralTour}
                 </button>
               </div>
             </div>
@@ -635,6 +670,8 @@ export default function App() {
                       key={tc.id}
                       type="button"
                       className={`menu-chip-btn ${timeControl === tc.id ? 'active' : ''}`}
+                      role="radio"
+                      aria-checked={timeControl === tc.id}
                       onClick={() => handleSetTimeControl(tc.id)}
                       title={`${tc.label} (${tc.sub})`}
                     >
@@ -680,6 +717,8 @@ export default function App() {
                       key={lvl.id}
                       type="button"
                       className={`menu-ladder-btn ${aiDifficulty === lvl.id ? 'active' : ''}`}
+                      role="radio"
+                      aria-checked={aiDifficulty === lvl.id}
                       onClick={() => handleSetDifficulty(lvl.id)}
                       title={`${lvl.label} (${lvl.rating})`}
                     >
@@ -712,6 +751,8 @@ export default function App() {
                   <button
                     type="button"
                     className={`menu-segment-btn ${gameVariant === 'standard' ? 'active' : ''}`}
+                    role="radio"
+                    aria-checked={gameVariant === 'standard'}
                     onClick={() => handleSetVariant('standard')}
                   >
                     <span className="segment-icon" aria-hidden="true">♟</span>
@@ -720,6 +761,8 @@ export default function App() {
                   <button
                     type="button"
                     className={`menu-segment-btn ${gameVariant === 'chess960' ? 'active' : ''}`}
+                    role="radio"
+                    aria-checked={gameVariant === 'chess960'}
                     onClick={() => handleSetVariant('chess960')}
                   >
                     <span className="segment-icon" aria-hidden="true">🎲</span>
