@@ -152,6 +152,8 @@ export interface Translations {
   liftDesc: string;
   keyH: string;
   hideUiDesc: string;
+  copyFen: string;
+  fenCopied: string;
   volumeLabel: string;
   volumeAriaLabel: string;
   btnHint: string;
@@ -302,6 +304,8 @@ export const translations: Record<Language, Translations> = {
     keyH: 'H',
     hideUiDesc: 'Hide the interface',
     volumeLabel: 'Volume',
+    copyFen: 'Copy FEN',
+    fenCopied: 'FEN copied',
     volumeAriaLabel: 'Set the volume of game sounds',
     btnHint: 'Hint',
     keyboardShortcuts: 'Keyboard Shortcuts'
@@ -449,6 +453,8 @@ export const translations: Record<Language, Translations> = {
     keyH: 'H',
     hideUiDesc: 'Скрыть интерфейс',
     volumeLabel: 'Громкость',
+    copyFen: 'Копировать FEN',
+    fenCopied: 'FEN скопирован',
     volumeAriaLabel: 'Настроить громкость звуков игры',
     btnHint: 'Подсказка',
     keyboardShortcuts: 'Горячие клавиши'

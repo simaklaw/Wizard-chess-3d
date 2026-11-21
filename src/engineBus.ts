@@ -127,5 +127,7 @@ export interface WizardChessApi {
   hasSavedGame(): boolean;
   /** Full game in PGN format (headers + movetext + result). */
   getGamePgn(): string;
+  /** Current position in FEN (null while previewing history). */
+  getGameFen(): string | null;
   [key: string]: unknown;
 }

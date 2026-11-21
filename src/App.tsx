@@ -36,6 +36,7 @@ export default function App() {
   const [previewPly, setPreviewPly] = useState<number | null>(null);
   const [isTourActive, setIsTourActive] = useState(false);
   const [restoredNotice, setRestoredNotice] = useState(false);
+  const [fenCopied, setFenCopied] = useState(false);
   const [theme, setTheme] = useState<string>(() => {
     try {
       return localStorage.getItem('wizardChess_theme') || 'sanctum';
@@ -343,6 +344,32 @@ export default function App() {
       a.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 2000);
     } catch (e) {}
+  };
+
+  const handleCopyFen = async () => {
+    const fen = wizardChessRef.current?.getGameFen?.();
+    if (!fen) return;
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(fen);
+      ok = true;
+    } catch (e) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = fen;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        ok = document.execCommand('copy');
+        ta.remove();
+      } catch (e2) {}
+    }
+    if (ok) {
+      setFenCopied(true);
+      window.setTimeout(() => setFenCopied(false), 2200);
+    }
   };
 
   const handleZoomOut = () => {
@@ -932,6 +959,19 @@ export default function App() {
                   >
                     <span aria-hidden="true">📤</span>
                     <span>{t.exportPgn}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    id="btn-copy-fen"
+                    className="history-export-btn"
+                    onClick={handleCopyFen}
+                    disabled={totalPlies === 0}
+                    title={fenCopied ? t.fenCopied : t.copyFen}
+                    aria-label={t.copyFen}
+                  >
+                    <span aria-hidden="true">🧾</span>
+                    <span>{fenCopied ? t.fenCopied : t.copyFen}</span>
                   </button>
                 </div>
 
