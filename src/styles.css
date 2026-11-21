@@ -52,9 +52,9 @@ html, body, #root {
 /* Floating Minimal Top HUD */
 #hud-top {
   position: fixed;
-  top: 16px;
-  left: 20px;
-  right: 20px;
+  top: calc(16px + env(safe-area-inset-top, 0px));
+  left: calc(20px + env(safe-area-inset-left, 0px));
+  right: calc(20px + env(safe-area-inset-right, 0px));
   z-index: 10;
   display: flex;
   align-items: center;
@@ -269,9 +269,9 @@ html, body, #root {
 /* Bottom HUD */
 #hud-bottom {
   position: fixed;
-  bottom: 16px;
-  left: 20px;
-  right: 20px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  left: calc(20px + env(safe-area-inset-left, 0px));
+  right: calc(20px + env(safe-area-inset-right, 0px));
   z-index: 10;
   display: flex;
   align-items: center;
@@ -798,9 +798,9 @@ body.cinematic-ui-hidden #hud-bottom {
 /* Mobile Responsive Adjustments */
 @media (max-width: 768px) {
   #hud-top {
-    top: 10px;
-    left: 10px;
-    right: 10px;
+    top: calc(10px + env(safe-area-inset-top, 0px));
+    left: calc(10px + env(safe-area-inset-left, 0px));
+    right: calc(10px + env(safe-area-inset-right, 0px));
     gap: 8px;
     flex-wrap: nowrap;
   }
@@ -872,9 +872,9 @@ body.cinematic-ui-hidden #hud-bottom {
 
   /* Optimize bottom HUD on mobile: center captured tray */
   #hud-bottom {
-    bottom: 12px;
-    left: 12px;
-    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    left: calc(12px + env(safe-area-inset-left, 0px));
+    right: calc(12px + env(safe-area-inset-right, 0px));
     z-index: 8;
     justify-content: center;
   }
@@ -1586,342 +1586,21 @@ body.cinematic-ui-hidden #hud-bottom {
 body.cinematic-ui-hidden .move-history-widget {
   opacity: 0;
   pointer-events: none;
-  transform: translateY(12px);
-}
+  transform: 
 
-/* Undo Button Highlighting in Actions Bar */
-#btn-undo {
-  border-color: rgba(var(--gold-rgb), 0.40);
-  color: var(--gold-bright);
-}
-
-#btn-undo:hover {
-  border-color: var(--gold);
-  background: rgba(var(--gold-rgb), 0.16);
-  box-shadow: 0 0 10px rgba(var(--gold-rgb), 0.30);
-}
-
-@media (max-width: 768px) {
-  .move-history-widget {
-    bottom: 60px;
-    right: 14px;
-  }
-}
-
+... [Content truncated]
 /* =========================================================================
-   Floating History Position Preview Banner
+   P2 polish: scroll containment, fine-pointer rubber-band suppression
+   (Vercel Web Interface Guidelines audit, 2026-11)
    ========================================================================= */
-.history-preview-banner {
-  position: fixed;
-  top: 76px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 95;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: auto;
-  animation: previewBannerSlideIn 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+.side-drawer,
+.drawer-body,
+.move-history-list {
+  overscroll-behavior: contain;
 }
 
-@keyframes previewBannerSlideIn {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -10px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0) scale(1);
-  }
-}
-
-.preview-banner-content {
-  background: rgba(var(--panel2-rgb), 0.92);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(var(--gold2-rgb), 0.45);
-  border-radius: 999px;
-  padding: 6px 14px 6px 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.65), 0 0 16px rgba(var(--gold2-rgb), 0.20);
-}
-
-.preview-banner-badge {
-  font-size: 1rem;
-}
-
-.preview-banner-text {
-  color: #f7f3ea;
-  font-size: 0.84rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-}
-
-.preview-return-btn {
-  background: linear-gradient(135deg, rgba(var(--gold2-rgb), 0.28) 0%, rgba(190, 140, 30, 0.38) 100%);
-  border: 1px solid rgba(var(--gold2-rgb), 0.65);
-  border-radius: 999px;
-  color: #fff;
-  font-family: inherit;
-  font-size: 0.76rem;
-  font-weight: 700;
-  padding: 5px 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  transition: all 0.16s ease;
-  white-space: nowrap;
-  user-select: none;
-}
-
-.preview-return-btn:hover {
-  background: linear-gradient(135deg, rgba(var(--gold2-rgb), 0.48) 0%, rgba(190, 140, 30, 0.58) 100%);
-  border-color: var(--gold-bright);
-  box-shadow: 0 0 14px rgba(var(--gold2-rgb), 0.45);
-  transform: translateY(-1px);
-}
-
-.preview-return-btn:active {
-  transform: translateY(0);
-}
-
-.return-arrow {
-  font-size: 0.85rem;
-  color: var(--gold-bright);
-}
-
-body.cinematic-ui-hidden .history-preview-banner {
-  opacity: 0;
-  pointer-events: none;
-  transform: translate(-50%, -10px);
-}
-
-/* =========================================================================
-   Floating Skip Intro Tour Button
-   ========================================================================= */
-.skip-tour-btn {
-  position: fixed;
-  top: 18px;
-  right: 20px;
-  z-index: 100;
-  background: rgba(var(--panel2-rgb), 0.95);
-  border: 1px solid rgba(var(--gold2-rgb), 0.60);
-  border-radius: 999px;
-  padding: 8px 18px;
-  color: #fff;
-  font-family: inherit;
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  outline: none;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.70), 0 0 14px rgba(var(--gold2-rgb), 0.30);
-  animation: skipBtnSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  transition: all 0.18s ease;
-  user-select: none;
-}
-
-.skip-tour-btn:hover {
-  background: rgba(var(--gold2-rgb), 0.28);
-  border-color: var(--gold-bright);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.80), 0 0 20px rgba(var(--gold2-rgb), 0.55);
-  transform: translateY(-1px) scale(1.02);
-}
-
-.skip-tour-btn:active {
-  transform: translateY(0) scale(0.98);
-}
-
-.skip-tour-icon {
-  font-size: 0.85rem;
-}
-
-.skip-tour-text {
-  color: var(--gold-bright);
-}
-
-@keyframes skipBtnSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-body.cinematic-ui-hidden .skip-tour-btn {
-  opacity: 0;
-  pointer-events: none;
-}
-
-
-
-/* =========================================================================
-   Mobile Polish: safe areas, touch targets, tap feedback, overscroll
-   ========================================================================= */
-html, body {
-  overscroll-behavior: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-button, select {
-  touch-action: manipulation;
-}
-
-.mobile-touch-hint {
-  display: none;
-}
-
-@media (max-width: 768px) {
-  .mobile-touch-hint {
-    display: flex;
-  }
-
-  /* Keyboard shortcuts are meaningless on touch screens */
-  .keyboard-shortcuts-grid {
-    display: none;
-  }
-
-  /* Comfortable touch targets */
-  .hud-btn,
-  .menu-chip-btn,
-  .menu-ladder-btn,
-  .menu-segment-btn,
-  .drawer-tab-btn {
-    min-height: 40px;
-  }
-
-  .drawer-tab-btn {
-    padding: 10px 4px;
-  }
-
-  .drawer-close-btn {
-    width: 40px;
-    height: 40px;
-    font-size: 1.1rem;
-  }
-
-  /* Keep the preview / restored banners below the taller mobile HUD */
-  .history-preview-banner {
-    top: 96px;
-  }
-
-  .preview-banner-text {
-    white-space: normal;
-    text-align: center;
-    max-width: 70vw;
-  }
-
-  /* iOS notched-device safe areas */
-  #hud-top {
-    top: calc(10px + env(safe-area-inset-top, 0px));
-  }
-
-  #hud-bottom {
-    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-  }
-
-  .side-drawer {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-
-  .drawer-body {
-    padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* Touch press feedback */
-  .hud-btn:active,
-  .menu-chip-btn:active,
-  .menu-ladder-btn:active,
-  .menu-segment-btn:active,
-  .history-cell-btn:active {
-    transform: scale(0.97);
-  }
-}
-
-/* =========================================================================
-   PGN Export Button (Move History toolbar)
-   ========================================================================= */
-.history-export-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: rgba(var(--panel-rgb), 0.88);
-  border: 1px solid rgba(var(--gold2-rgb), 0.22);
-  border-radius: 999px;
-  color: var(--text);
-  font-family: inherit;
-  font-size: 0.74rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.16s ease;
-  white-space: nowrap;
-  user-select: none;
-}
-
-.history-export-btn:hover:not(:disabled) {
-  background: rgba(var(--panel-hover-rgb), 0.95);
-  border-color: rgba(var(--gold2-rgb), 0.50);
-  color: var(--gold-bright);
-}
-
-.history-export-btn:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.history-export-btn:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-/* =========================================================================
-   Dark Gold Theme (html[data-theme='dark-gold'])
-   ========================================================================= */
-html[data-theme='dark-gold'] {
-  --bg: #0a0703;
-  --hud-bg: rgba(22, 16, 7, 0.82);
-  --hud-border: rgba(232, 179, 65, 0.42);
-  --gold: #e8b341;
-  --gold-bright: #ffd97a;
-  --text: #f7f0de;
-  --muted: #a89b81;
-  --gold-rgb: 232, 179, 65;
-  --gold2-rgb: 255, 217, 122;
-  --panel-rgb: 26, 19, 9;
-  --panel2-rgb: 22, 16, 8;
-  --panel3-rgb: 20, 14, 7;
-  --panel4-rgb: 17, 12, 6;
-  --panel-hover-rgb: 40, 29, 13;
-  --panel-deep-rgb: 9, 6, 2;
-}
-
-html[data-theme='dark-gold'] #loading-overlay {
-  background: radial-gradient(circle at center, #1c1305 0%, #070402 100%);
-}
-
-/* =========================================================================
-   Accessibility: respect prefers-reduced-motion for HUD animations
-   (the 3D scene itself keeps its cinematic motion)
-   ========================================================================= */
-@media (prefers-reduced-motion: reduce) {
-  #hud-top *,
-  .side-drawer *,
-  #hud-bottom *,
-  #restored-game-banner {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+@media (pointer: fine) {
+  html {
+    overscroll-behavior: none;
   }
 }

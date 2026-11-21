@@ -83,7 +83,8 @@ export interface Translations {
   diffLegend: string;
 
   // Check Laser Threat
-  checkThreat: string;
+  checkThre
+at: string;
 
   // Board Stone Textures
   boardTextureLabel: string;
@@ -130,11 +131,11 @@ export const translations: Record<Language, Translations> = {
   en: {
     brandTitle: 'Wizard Chess',
     loaderTitle: 'Wizard Chess',
-    loaderText: 'Summoning Sanctum Architecture & Sculpted Pieces...',
+    loaderText: 'Summoning Sanctum Architecture & Sculpted Pieces…',
     turnWhite: 'White to Move',
     turnBlack: 'Black to Move',
     checkSuffix: ' (Check!)',
-    aiSuffix: ' (AI)...',
+    aiSuffix: ' (AI)…',
     checkmateWhiteWins: 'Checkmate — White Wins',
     checkmateBlackWins: 'Checkmate — Black Wins',
     stalemateDraw: 'Stalemate — Draw',
@@ -154,7 +155,8 @@ export const translations: Record<Language, Translations> = {
     collapseHistory: 'Collapse',
     moveNumber: '#',
     cameraViews: 'Camera Views',
-    cameraViewsSub: 'Tap active view to flip',
+    cameraViewsS
+ub: 'Tap active view to flip',
     camPlayer: 'Player Cam',
     camTop: 'Overhead',
     camSide: 'Side',
@@ -214,7 +216,8 @@ export const translations: Record<Language, Translations> = {
 
     menuButton: 'Menu',
     menuTitle: 'Sanctum Menu',
-    matchSettings: 'Match Settings',
+   
+ matchSettings: 'Match Settings',
     promotionLabel: 'Pawn promotion',
     promoQueen: 'Queen',
     promoRook: 'Rook',
@@ -245,11 +248,11 @@ export const translations: Record<Language, Translations> = {
   ru: {
     brandTitle: 'Wizard Chess',
     loaderTitle: 'Wizard Chess',
-    loaderText: 'Призыв архитектуры святилища и каменных фигур...',
+    loaderText: 'Призыв архитектуры святилища и каменных фигур…',
     turnWhite: 'Ход белых',
     turnBlack: 'Ход чёрных',
     checkSuffix: ' (Шах!)',
-    aiSuffix: ' (ИИ)...',
+    aiSuffix: ' (ИИ)…',
     checkmateWhiteWins: 'Мат — Победа белых',
     checkmateBlackWins: 'Мат — Победа чёрных',
     stalemateDraw: 'Пат — Ничья',
@@ -276,7 +279,8 @@ export const translations: Record<Language, Translations> = {
     camWide: 'Собор',
     zoomIn: 'Приблизить (+)',
     zoomOut: 'Отдалить (−)',
-    soundDisplay: 'Звук и интерфейс',
+    soundDisplay
+: 'Звук и интерфейс',
     soundOn: 'Звук: Вкл',
     soundMuted: 'Звук: Выкл',
     hideUI: 'Скрыть интерфейс [H]',
@@ -331,6 +335,7 @@ export const translations: Record<Language, Translations> = {
     menuTitle: 'Меню святилища',
     matchSettings: 'Настройки партии',
     promotionLabel: 'Превращение пешки',
+
     promoQueen: 'Ферзь',
     promoRook: 'Ладья',
     promoBishop: 'Слон',
