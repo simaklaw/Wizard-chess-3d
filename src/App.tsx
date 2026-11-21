@@ -17,6 +17,9 @@ interface MoveRow {
 
 export default function App() {
   const initializedRef = useRef(false);
+  // Focus management for the aria-modal menu drawer.
+  const drawerRef = useRef<HTMLElement | null>(null);
+  const menuBtnRef = useRef<HTMLButtonElement | null>(null);
   const wizardChessRef = useRef<WizardChessApi | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [historyExpanded, setHistoryExpanded] = useState(true);
@@ -58,7 +61,8 @@ export default function App() {
     }
   });
 
-  const [drawerTab, setDrawerTab] = useState<'game' | 'board' | 'camera' | 'audio'>('game');
+  const [drawerTab, setDrawerTab] = useState<'game' | 'board' | 'camera'
+ | 'audio'>('game');
   const [timeControl, setTimeControl] = useState<string>('rapid_10_0');
   const [aiDifficulty, setAiDifficulty] = useState<string>('intermediate');
   const [gameVariant, setGameVariant] = useState<string>('standard');
@@ -117,7 +121,8 @@ export default function App() {
       if (payload.history) {
         setHistoryList([...payload.history]);
       } else {
-        const api = wizardChessRef.current;
+        const api = wizardChessRef.cur
+rent;
         if (api?.getMoveHistoryNotation) {
           setHistoryList(api.getMoveHistoryNotation());
         }
@@ -165,6 +170,39 @@ export default function App() {
     }
   }, [drawerOpen]);
 
+  // Move focus into the drawer when it opens, trap Tab while open,
+  // and return focus to the menu toggle when it closes.
+  useEffect(() => {
+    const drawer = drawerRef.current;
+    if (drawerOpen) {
+      if (drawer) {
+        const focusables = () => Array.from(
+          drawer.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+        ).filter((el) => !el.hasAttribute('disabled') && el.offsetParent !== null);
+        const first = focusables()[0];
+        if (first) first.focus();
+        const onKey = (e: KeyboardEvent) => {
+          if (e.key !== 'Tab') return;
+          const list = focusables();
+          if (list.length === 0) return;
+          const active = document.activeElement;
+          if (e.shiftKey && (active === list[0] || !drawer.contains(active))) {
+            e.preventDefault();
+            list[list.length - 1].focus();
+          } else if (!e.shiftKey && active === list[list.length - 1]) {
+            e.preventDefault();
+            list[0].focus();
+          }
+        };
+        drawer.addEventListener('keydown', onKey);
+        return () => drawer.removeEventListener('keydown', onKey);
+      }
+      return undefined;
+    }
+    menuBtnRef.current?.focus();
+    return undefined;
+  }, [drawerOpen]);
+
   useEffect(() => {
     return subscribeLanguage((newLang) => {
       setLang(newLang);
@@ -192,7 +230,8 @@ export default function App() {
   };
 
   const handleSetPromotionPiece = (val: string) => {
-    setPromotionPiece(val);
+    setPromo
+tionPiece(val);
     try { localStorage.setItem('wizardChess_promotion', val); } catch (e) {}
     wizardChessRef.current?.setPromotionPiece?.(val as 'queen' | 'rook' | 'knight' | 'bishop');
   };
@@ -259,7 +298,8 @@ export default function App() {
 
   const handleStartTour = () => {
     setDrawerOpen(false);
-    wizardChessRef.current?.startCathedralTour?.();
+    wizardChessRef.current?.startCathedralTo
+ur?.();
   };
 
   useEffect(() => {
@@ -333,11 +373,12 @@ export default function App() {
 
       {/* Main Screen Top HUD: Clean & uncluttered */}
       <div id="hud-top">
-        <div className="hud-group" id="hud-left">
+        <div className="hud-group" id="hud-le
+ft">
           <div className="brand-pill">
             <span className="brand-title">{t.brandTitle}</span>
           </div>
-          <div className="status-pill" id="status-pill">
+          <div className="status-pill" id="status-pill" aria-live="polite">
             <span className="turn-dot" id="turn-dot"></span>
             <span id="turn-text">{t.turnWhite}</span>
             <span className="mode-badge" id="mode-badge">{t.playingAsWhite}</span>
@@ -379,12 +420,14 @@ export default function App() {
             <span className="lang-icon" aria-hidden="true">🌐</span>
             <span className={`lang-text ${lang === 'ru' ? 'active' : ''}`}>RU</span>
             <span className="lang-sep">|</span>
-            <span className={`lang-text ${lang === 'en' ? 'active' : ''}`}>EN</span>
+        
+    <span className={`lang-text ${lang === 'en' ? 'active' : ''}`}>EN</span>
           </button>
 
           <button
             type="button"
             className={`hud-btn hud-menu-btn ${drawerOpen ? 'active' : ''}`}
+            ref={menuBtnRef}
             id="btn-menu-toggle"
             onClick={() => setDrawerOpen((prev) => !prev)}
             aria-expanded={drawerOpen}
@@ -426,7 +469,8 @@ export default function App() {
             </span>
             <button
               type="button"
-              id="btn-return-live"
+              id="b
+tn-return-live"
               className="preview-return-btn"
               onClick={handleReturnToLive}
               title={t.returnToLiveGame}
@@ -447,6 +491,7 @@ export default function App() {
 
       {/* Unified Side Drawer: Contains Move History, Game Actions, Match Settings, Board Stone, Views & Help */}
       <aside
+        ref={drawerRef}
         id="side-drawer"
         className={`side-drawer ${drawerOpen ? 'open' : ''}`}
         role="dialog"
@@ -485,7 +530,8 @@ export default function App() {
             id="tab-btn-game"
             aria-selected={drawerTab === 'game'}
             className={`drawer-tab-btn ${drawerTab === 'game' ? 'active' : ''}`}
-            onClick={() => setDrawerTab('game')}
+            onClick=
+{() => setDrawerTab('game')}
           >
             <span className="drawer-tab-icon" aria-hidden="true">⚔</span>
             <span className="drawer-tab-text">{t.tabGame}</span>
@@ -531,7 +577,8 @@ export default function App() {
              ========================================================================= */}
           <div
             className={`drawer-tab-panel ${drawerTab === 'game' ? 'active' : ''}`}
-            style={{ display: drawerTab === 'game' ? 'flex' : 'none' }}
+            sty
+le={{ display: drawerTab === 'game' ? 'flex' : 'none' }}
           >
             {/* Quick Battle Actions */}
             <div className="drawer-section">
@@ -571,7 +618,7 @@ export default function App() {
                   title={t.cathedralTour}
                   onClick={handleStartTour}
                 >
-                  🏛 {t.cathedralTour}
+                  <span aria-hidden="true">🏛</span> {t.cathedralTour}
                 </button>
               </div>
             </div>
@@ -582,7 +629,8 @@ export default function App() {
             <div className="drawer-section">
               <div className="drawer-section-header">
                 <span className="drawer-section-icon" aria-hidden="true">⏱</span>
-                <span className="drawer-section-title">{t.matchSettings}</span>
+                <span classNam
+e="drawer-section-title">{t.matchSettings}</span>
               </div>
 
               {/* Hidden select kept for automated test backward-compatibility */}
@@ -624,7 +672,8 @@ export default function App() {
                 <div className="menu-setting-label">⏱ {t.timeControl}</div>
                 <div className="menu-chips-grid" role="radiogroup" aria-label={t.timeControl}>
                   {[
-                    { id: 'rapid_10_0', label: '10 min', sub: t.rapid },
+  
+                  { id: 'rapid_10_0', label: '10 min', sub: t.rapid },
                     { id: 'rapid_15_10', label: '15 | 10', sub: t.rapid },
                     { id: 'blitz_5_0', label: '5 min', sub: t.blitz },
                     { id: 'blitz_3_0', label: '3 min', sub: t.blitz },
@@ -634,7 +683,7 @@ export default function App() {
                     <button
                       key={tc.id}
                       type="button"
-                      className={`menu-chip-btn ${timeControl === tc.id ? 'active' : ''}`}
+                      className={`menu-chip-btn ${timeControl === tc.id ? 'active' : ''}`} role="radio" aria-checked={timeControl === tc.id} aria-label={`${tc.label} (${tc.sub})`}
                       onClick={() => handleSetTimeControl(tc.id)}
                       title={`${tc.label} (${tc.sub})`}
                     >
@@ -666,7 +715,8 @@ export default function App() {
 
               {/* AI Difficulty Scale Chips */}
               <div className="menu-setting-group">
-                <div className="menu-setting-label">⚔ {t.difficulty}</div>
+                <div
+ className="menu-setting-label">⚔ {t.difficulty}</div>
                 <div className="menu-chips-ladder" role="radiogroup" aria-label={t.difficulty}>
                   {[
                     { id: 'novice', label: t.diffNovice, rating: '~600' },
@@ -679,7 +729,7 @@ export default function App() {
                     <button
                       key={lvl.id}
                       type="button"
-                      className={`menu-ladder-btn ${aiDifficulty === lvl.id ? 'active' : ''}`}
+                      className={`menu-ladder-btn ${aiDifficulty === lvl.id ? 'active' : ''}`} role="radio" aria-checked={aiDifficulty === lvl.id} aria-label={`${lvl.label} (${lvl.rating})`}
                       onClick={() => handleSetDifficulty(lvl.id)}
                       title={`${lvl.label} (${lvl.rating})`}
                     >
@@ -707,11 +757,12 @@ export default function App() {
 
               {/* Game Variant Segment Chips */}
               <div className="menu-setting-group">
-                <div className="menu-setting-label">♟ {t.gameVariant}</div>
+                <div className="menu-setti
+ng-label">♟ {t.gameVariant}</div>
                 <div className="menu-segments-row" role="radiogroup" aria-label={t.gameVariant}>
                   <button
                     type="button"
-                    className={`menu-segment-btn ${gameVariant === 'standard' ? 'active' : ''}`}
+                    className={`menu-segment-btn ${gameVariant === 'standard' ? 'active' : ''}`} role="radio" aria-checked={gameVariant === 'standard'}
                     onClick={() => handleSetVariant('standard')}
                   >
                     <span className="segment-icon" aria-hidden="true">♟</span>
@@ -719,7 +770,7 @@ export default function App() {
                   </button>
                   <button
                     type="button"
-                    className={`menu-segment-btn ${gameVariant === 'chess960' ? 'active' : ''}`}
+                    className={`menu-segment-btn ${gameVariant === 'chess960' ? 'active' : ''}`} role="radio" aria-checked={gameVariant === 'chess960'}
                     onClick={() => handleSetVariant('chess960')}
                   >
                     <span className="segment-icon" aria-hidden="true">🎲</span>
@@ -746,7 +797,8 @@ export default function App() {
                       className={`menu-segment-btn ${promotionPiece === pp.id ? 'active' : ''}`}
                       onClick={() => handleSetPromotionPiece(pp.id)}
                       title={pp.label}
-                    >
+       
+             >
                       <span className="segment-icon" aria-hidden="true">{pp.icon}</span>
                       <span>{pp.label}</span>
                     </button>
@@ -792,7 +844,8 @@ export default function App() {
                     id="btn-export-pgn"
                     className="history-export-btn"
                     onClick={handleExportPgn}
-                    disabled={totalPlies === 0}
+                    disabled={total
+Plies === 0}
                     title={t.exportPgn}
                     aria-label={t.exportPgn}
                   >
@@ -833,7 +886,8 @@ export default function App() {
                                 </button>
                                 {row.black ? (
                                   <button
-                                    type="button"
+   
+                                 type="button"
                                     className={`history-cell-btn history-black ${isBlackActive ? 'active-ply' : ''}`}
                                     onClick={() => handlePreviewPly(blackPly)}
                                     title={`${t.previewingMovePrefix} ${row.moveNumber} (${t.blackPiece})`}
@@ -846,299 +900,6 @@ export default function App() {
                               </div>
                             );
                           })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+                        </d
 
-          {/* =========================================================================
-             TAB PANEL 2: BOARD (Tactile Stone Textures & Materials)
-             ========================================================================= */}
-          <div
-            className={`drawer-tab-panel ${drawerTab === 'board' ? 'active' : ''}`}
-            style={{ display: drawerTab === 'board' ? 'flex' : 'none' }}
-          >
-            <div className="drawer-section">
-              <div className="drawer-section-header">
-                <span className="drawer-section-icon" aria-hidden="true">🏛</span>
-                <span className="drawer-section-title">{t.boardTextureLabel}</span>
-              </div>
-
-              {/* Hidden select kept for automated test backward-compatibility */}
-              <select
-                id="select-board-texture"
-                value={boardStone}
-                onChange={(e) => handleSetBoardStone(e.target.value)}
-                aria-label={t.boardTextureLabel}
-                tabIndex={-1}
-                style={{ display: 'none' }}
-                aria-hidden="true"
-              >
-                <option value="obsidian">{t.textureObsidian}</option>
-                <option value="weathered_abbey">{t.textureAbbey}</option>
-                <option value="mossy_ruin">{t.textureMossy}</option>
-              </select>
-
-              {/* Enhanced Gothic Stone Texture Cards */}
-              <div className="stone-texture-chips-wrap" role="radiogroup" aria-label={t.boardTextureLabel}>
-                <button
-                  type="button"
-                  className={`stone-chip-btn ${boardStone === 'obsidian' ? 'active' : ''}`}
-                  onClick={() => handleSetBoardStone('obsidian')}
-                  title={t.textureObsidian}
-                  aria-checked={boardStone === 'obsidian'}
-                  role="radio"
-                >
-                  <span className="stone-swatch swatch-obsidian" aria-hidden="true"></span>
-                  <div className="stone-chip-info">
-                    <span className="stone-chip-name">{t.textureObsidian}</span>
-                    <span className="stone-chip-desc">Глубокий зеркальный камень с золотыми клетками</span>
-                  </div>
-                  {boardStone === 'obsidian' && <span className="stone-active-check" aria-hidden="true">✦</span>}
-                </button>
-                <button
-                  type="button"
-                  className={`stone-chip-btn ${boardStone === 'weathered_abbey' ? 'active' : ''}`}
-                  onClick={() => handleSetBoardStone('weathered_abbey')}
-                  title={t.textureAbbey}
-                  aria-checked={boardStone === 'weathered_abbey'}
-                  role="radio"
-                >
-                  <span className="stone-swatch swatch-abbey" aria-hidden="true"></span>
-                  <div className="stone-chip-info">
-                    <span className="stone-chip-name">{t.textureAbbey}</span>
-                    <span className="stone-chip-desc">Резной монастырский известняк с патиной веков</span>
-                  </div>
-                  {boardStone === 'weathered_abbey' && <span className="stone-active-check" aria-hidden="true">✦</span>}
-                </button>
-                <button
-                  type="button"
-                  className={`stone-chip-btn ${boardStone === 'mossy_ruin' ? 'active' : ''}`}
-                  onClick={() => handleSetBoardStone('mossy_ruin')}
-                  title={t.textureMossy}
-                  aria-checked={boardStone === 'mossy_ruin'}
-                  role="radio"
-                >
-                  <span className="stone-swatch swatch-mossy" aria-hidden="true"></span>
-                  <div className="stone-chip-info">
-                    <span className="stone-chip-name">{t.textureMossy}</span>
-                    <span className="stone-chip-desc">Древние руины с изумрудным лесным мхом</span>
-                  </div>
-                  {boardStone === 'mossy_ruin' && <span className="stone-active-check" aria-hidden="true">✦</span>}
-                </button>
-              </div>
-
-              <div className="stone-material-hint">
-                <span className="hint-icon" aria-hidden="true">✨</span>
-                <span>Физические PBR-материалы: шероховатость, металлический блеск золота и отражения собора пересчитываются в реальном времени.</span>
-              </div>
-            </div>
-          </div>
-
-          {/* =========================================================================
-             TAB PANEL 3: CAMERA (Perspectives & Zoom Control)
-             ========================================================================= */}
-          <div
-            className={`drawer-tab-panel ${drawerTab === 'camera' ? 'active' : ''}`}
-            style={{ display: drawerTab === 'camera' ? 'flex' : 'none' }}
-          >
-            <div className="drawer-section">
-              <div className="drawer-section-header">
-                <span className="drawer-section-icon" aria-hidden="true">🎥</span>
-                <span className="drawer-section-title">{t.cameraViews}</span>
-              </div>
-
-              <div className="drawer-cameras-grid">
-                <button
-                  className="hud-btn active"
-                  id="btn-cam-player"
-                  title="Player Camera (Click again to flip White / Black view)"
-                >
-                  {t.camPlayer}
-                </button>
-                <button
-                  className="hud-btn"
-                  id="btn-cam-top"
-                  title="Overhead Board View (Click again to flip White / Black orientation)"
-                >
-                  {t.camTop}
-                </button>
-                <button
-                  className="hud-btn"
-                  id="btn-cam-side"
-                  title="Side Profile View (Click again to switch East / West side)"
-                >
-                  {t.camSide}
-                </button>
-                <button
-                  className="hud-btn"
-                  id="btn-cam-wide"
-                  title="Wide Cathedral View (Click again to switch North Rose / South Narthex)"
-                >
-                  {t.camWide}
-                </button>
-              </div>
-
-              <div className="drawer-zoom-wrap">
-                <span className="drawer-zoom-label">Zoom:</span>
-                <div className="cam-zoom-group" role="group" aria-label="Camera Zoom">
-                  <button
-                    type="button"
-                    className="hud-btn zoom-btn"
-                    id="btn-zoom-in"
-                    title={t.zoomIn}
-                    onClick={handleZoomIn}
-                    aria-label={t.zoomIn}
-                  >
-                    +
-                  </button>
-                  <button
-                    type="button"
-                    className="hud-btn zoom-btn"
-                    id="btn-zoom-out"
-                    title={t.zoomOut}
-                    onClick={handleZoomOut}
-                    aria-label={t.zoomOut}
-                  >
-                    −
-                  </button>
-                </div>
-              </div>
-
-              <div className="camera-subhint-card">
-                <span className="hint-bullet" aria-hidden="true">💡</span>
-                <span>{t.cameraViewsSub}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* =========================================================================
-             TAB PANEL 4: AUDIO & INTERFACE (Sound, Language, Keyboard Guide)
-             ========================================================================= */}
-          <div
-            className={`drawer-tab-panel ${drawerTab === 'audio' ? 'active' : ''}`}
-            style={{ display: drawerTab === 'audio' ? 'flex' : 'none' }}
-          >
-            <div className="drawer-section">
-              <div className="drawer-section-header">
-                <span className="drawer-section-icon" aria-hidden="true">🔊</span>
-                <span className="drawer-section-title">{t.soundDisplay}</span>
-              </div>
-
-              <div className="drawer-toggles-row">
-                <button
-                  className={`hud-btn ${soundEnabled ? 'active' : ''}`}
-                  id="btn-sound-toggle"
-                  title="Toggle Spatial 3D Audio (Mute / Unmute)"
-                  onClick={handleToggleSound}
-                >
-                  {soundEnabled ? t.soundOn : t.soundMuted}
-                </button>
-
-                <button
-                  className="hud-btn"
-                  id="btn-hide-ui"
-                  title="Toggle HUD visibility (Shortcut: H)"
-                  onClick={() => setDrawerOpen(false)}
-                >
-                  {t.hideUI}
-                </button>
-
-                <button
-                  className={`hud-btn ${theme === 'dark-gold' ? 'active' : ''}`}
-                  id="btn-theme-toggle"
-                  title={t.themeToggleTitle}
-                  aria-label={t.themeToggleTitle}
-                  onClick={handleToggleTheme}
-                >
-                  🎨 {theme === 'dark-gold' ? t.themeDarkGold : t.themeSanctum}
-                </button>
-
-                <button
-                  type="button"
-                  className="hud-btn"
-                  id="btn-drawer-lang-toggle"
-                  title={t.langToggleTitle}
-                  onClick={handleToggleLanguage}
-                >
-                  🌐 {lang === 'ru' ? 'English (EN)' : 'Русский (RU)'}
-                </button>
-              </div>
-
-              <div className="drawer-divider" aria-hidden="true"></div>
-
-              <div className="drawer-hint-card" id="controls-hint">
-                <div className="hint-header">ℹ️ {t.controlsGuideTitle}</div>
-                <div className="hint-content">{t.controlsHint}</div>
-              </div>
-
-              <div className="drawer-hint-card mobile-touch-hint" id="mobile-touch-hint">
-                <div className="hint-header">📱 {t.controlsMobile}</div>
-                <div className="hint-content">{t.mobileTouchHint}</div>
-              </div>
-
-              <div className="keyboard-shortcuts-grid">
-                <div className="shortcut-item">
-                  <kbd>ЛКМ</kbd>
-                  <span>Вращение вокруг доски</span>
-                </div>
-                <div className="shortcut-item">
-                  <kbd>ПКМ</kbd>
-                  <span>Панорамирование камеры</span>
-                </div>
-                <div className="shortcut-item">
-                  <kbd>+ / −</kbd>
-                  <span>Плавное приближение</span>
-                </div>
-                <div className="shortcut-item">
-                  <kbd>WASD</kbd>
-                  <span>Свободный полёт по собору</span>
-                </div>
-                <div className="shortcut-item">
-                  <kbd>R / F</kbd>
-                  <span>Подъём / Спуск</span>
-                </div>
-                <div className="shortcut-item">
-                  <kbd>H</kbd>
-                  <span>Скрыть интерфейс</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Screen Bottom HUD: Only Captured Pieces, completely clean! */}
-      <div id="hud-bottom">
-        <div className="captured-pill" id="captured-tray"></div>
-      </div>
-
-      <div id="checkmate-overlay" role="status" aria-live="polite">
-        <div className="checkmate-banner">
-          <div className="checkmate-ornament">{t.checkmateBannerOrnament}</div>
-          <div className="checkmate-crown" id="checkmate-crown">♔</div>
-          <div className="checkmate-title" id="checkmate-title">{t.checkmateTitle}</div>
-          <div className="checkmate-rule"></div>
-          <div className="checkmate-subtitle" id="checkmate-subtitle">
-            {t.checkmateWhiteTriumphs}
-          </div>
-          <div className="checkmate-actions">
-            <button className="checkmate-btn" id="btn-checkmate-replay">
-              {t.replayKingFall}
-            </button>
-            <button className="checkmate-btn" id="btn-checkmate-newgame">
-              {t.btnNewGame}
-            </button>
-            <button className="checkmate-btn secondary" id="btn-checkmate-dismiss">
-              {t.dismiss}
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
+... [Content truncated]
