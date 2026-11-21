@@ -297,7 +297,13 @@ export default function App() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' || e.key === ' ') {
+      if (e.key === ' ') {
+        // Space is reserved for skipping the intro tour only; it must never
+        // close the drawer while the user is activating a focused control.
+        if (isTourActive) handleSkipTour();
+        return;
+      }
+      if (e.key === 'Escape') {
         if (isTourActive) {
           handleSkipTour();
           return;
