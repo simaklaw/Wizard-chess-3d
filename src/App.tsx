@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { initWizardChess } from './wizardChessEngine.js';
 import { onEngineEvent, type WizardChessApi } from './engineBus.ts';
 import {
   getLanguage,
@@ -78,25 +77,41 @@ export default function App() {
   useEffect(() => {
     if (initializedRef.current) return;
     initializedRef.current = true;
-    // The engine returns its typed API handle; window.wizardChess stays as a
-    // legacy alias for automated tests.
-    wizardChessRef.current = (initWizardChess() as WizardChessApi) || null;
-    const api = wizardChessRef.current;
-    if (api?.isSoundEnabled) {
-      setSoundEnabled(api.isSoundEnabled());
-    }
-    if (api?.getBoardStoneTexture) {
-      setBoardStone(api.getBoardStoneTexture());
-    }
-    if (api?.setPromotionPiece) {
-      api.setPromotionPiece(promotionPiece as 'queen' | 'rook' | 'knight' | 'bishop');
-    }
-    if (api?.getMoveHistoryNotation) {
-      setHistoryList(api.getMoveHistoryNotation());
-    }
+    // The 3D engine (with Three.js) is code-split: its chunk is fetched after
+    // the first paint while the loading overlay is visible. StrictMode safe:
+    // the 'active' flag discards a stale init after the double-mount cleanup.
+    let active = true;
+    (async () => {
+      try {
+        const { initWizardChess } = await import('./wizardChessEngine.js');
+        if (!active) return;
+        // The engine returns its typed API handle; window.wizardChess stays as a
+        // legacy alias for automated tests.
+        wizardChessRef.current = (initWizardChess() as WizardChessApi) || null;
+        const api = wizardChessRef.current;
+        if (active && api?.isSoundEnabled) {
+          setSoundEnabled(api.isSoundEnabled());
+        }
+        if (active && api?.getBoardStoneTexture) {
+          setBoardStone(api.getBoardStoneTexture());
+        }
+        if (active && api?.setPromotionPiece) {
+          api.setPromotionPiece(promotionPiece as 'queen' | 'rook' | 'knight' | 'bishop');
+        }
+        if (active && api?.getMoveHistoryNotation) {
+          setHistoryList(api.getMoveHistoryNotation());
+        }
+      } catch (e) {
+        // Chunk failed to load (offline first visit, etc.): allow a re-init
+        // attempt on the next mount instead of leaving the app wedged.
+        initializedRef.current = false;
+        console.error('Failed to load the Wizard Chess engine chunk', e);
+      }
+    })();
     // Unmount cleanup: tear down the WebGL engine (renderer, geometries,
     // materials, textures, AI worker, listeners) and allow a clean re-init.
     return () => {
+      active = false;
       try {
         wizardChessRef.current?.dispose?.();
       } catch (e) {
