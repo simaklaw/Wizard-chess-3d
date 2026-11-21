@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { wizardChessAudio } from './wizardChessAudio.ts';
 import { getTranslations, getLanguage, setLanguage as setI18nLanguage, subscribeLanguage } from './i18n.ts';
-import { insufficientMaterial as coreInsufficientMaterial, positionKey as corePositionKey, legalMoves as coreLegalMoves, moveToSan as coreMoveToSan, squareName as coreSquareName } from './chess/rules.js';
+import { insufficientMaterial as coreInsufficientMaterial, positionKey as corePositionKey, legalMoves as coreLegalMoves, moveToSan as coreMoveToSan, squareName as coreSquareName, stateToFen as coreStateToFen } from './chess/rules.js';
 import { searchBestMove as coreSearchBestMove } from './chess/aiSearch.js';
 import { emitEngineEvent } from './engineBus.ts';
 import { parseNotationToMoves } from './chess/notation.js';
@@ -2258,6 +2258,12 @@ export function initWizardChess() {
       return '1/2-1/2';
     }
 
+    function getGameFen() {
+      if (previewingPly !== null) return null;
+      const state = buildCoreState(currentTurn);
+      try { return coreStateToFen(state); } catch (e) { return null; }
+    }
+
     function chess960StartFen() {
       if (!currentChess960Layout || !Array.isArray(currentChess960Layout.row)) return null;
       const CHAR = { king: 'k', queen: 'q', rook: 'r', bishop: 'b', knight: 'n' };
@@ -2480,7 +2486,9 @@ export function initWizardChess() {
         board: toCoreBoard(),
         turn,
         castling,
-        ep: enPassantTarget ? { r: enPassantTarget.r, c: enPassantTarget.c } : null
+        ep: enPassantTarget ? { r: enPassantTarget.r, c: enPassantTarget.c } : null,
+        halfmove: getHalfmoveClock(),
+        fullmove: Math.floor(moveHistory.length / 2) + 1
       };
     }
 
@@ -6526,6 +6534,7 @@ export function initWizardChess() {
       clearSavedGame,
       hasSavedGame,
       getGamePgn,
+      getGameFen,
       BOARD_STONE_LOOKS,
       isKingInCheck,
       captureScreenshot: async (filename) => {
