@@ -109,6 +109,8 @@ export interface WizardChessApi {
   /** Master volume 0..1 (procedural audio engine). */
   setVolume(v: number): void;
   getVolume(): number;
+  /** Best move for the side to move (quick main-thread search) or null. */
+  getBestHintMove(): { from: string; to: string; san: string; score: number } | null;
   getMoveHistoryNotation(): MoveRow[];
   updateMoveHistoryDOM(): void;
   previewHistoryPly(idx: number): boolean;

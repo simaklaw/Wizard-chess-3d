@@ -674,6 +674,15 @@ export default function App() {
                 >
                   {t.btnAiMove}
                 </button>
+
+                <button
+                  className="hud-btn"
+                  id="btn-hint"
+                  title={t.btnHint}
+                  onClick={() => setDrawerOpen(false)}
+                >
+                  {t.btnHint}
+                </button>
                 <button
                   className="hud-btn"
                   id="btn-reset"
