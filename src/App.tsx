@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { initWizardChess } from './wizardChessEngine.js';
 import { onEngineEvent, type WizardChessApi } from './engineBus.ts';
 import {
@@ -202,6 +202,42 @@ export default function App() {
     return subscribeLanguage((newLang) => {
       setLang(newLang);
     });
+  }, []);
+
+  // Keyboard support for radiogroups and the drawer tablist: arrow keys
+  // move focus and activate the next/previous item (WAI-ARIA roving pattern).
+  const handleRovingKeys = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowDown' && e.key !== 'ArrowLeft' && e.key !== 'ArrowUp') return;
+    const items = Array.from(
+      e.currentTarget.querySelectorAll<HTMLElement>('[role="radio"], [role="tab"]')
+    ).filter((el) => !el.hasAttribute('disabled'));
+    if (items.length === 0) return;
+    e.preventDefault();
+    const current = items.indexOf(document.activeElement as HTMLElement);
+    const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : -1;
+    const next = items[current === -1 ? 0 : (current + step + items.length) % items.length];
+    next.focus();
+    next.click();
+  };
+
+  // Checkmate overlay is an alert dialog: focus the first action when it
+  // appears and restore focus to the previously focused element when closed.
+  useEffect(() => {
+    const overlay = document.getElementById('checkmate-overlay');
+    if (!overlay) return;
+    let prevFocus: HTMLElement | null = null;
+    const apply = () => {
+      if (overlay.classList.contains('visible')) {
+        prevFocus = document.activeElement as HTMLElement | null;
+        overlay.querySelector<HTMLElement>('.checkmate-btn')?.focus();
+      } else if (prevFocus) {
+        prevFocus.focus();
+        prevFocus = null;
+      }
+    };
+    const observer = new MutationObserver(apply);
+    observer.observe(overlay, { attributes: true });
+    return () => observer.disconnect();
   }, []);
 
   const handleSetBoardStone = (styleId: string) => {
@@ -519,12 +555,14 @@ export default function App() {
         </div>
 
         {/* Category Navigation Tabs */}
-        <div className="drawer-tabs-nav" role="tablist" aria-label={t.menuTitle}>
+        <div className="drawer-tabs-nav" role="tablist" aria-label={t.menuTitle} onKeyDown={handleRovingKeys}>
           <button
             type="button"
             role="tab"
             id="tab-btn-game"
             aria-selected={drawerTab === 'game'}
+            aria-controls="panel-game"
+            tabIndex={drawerTab === 'game' ? 0 : -1}
             className={`drawer-tab-btn ${drawerTab === 'game' ? 'active' : ''}`}
             onClick={() => setDrawerTab('game')}
           >
@@ -536,6 +574,8 @@ export default function App() {
             role="tab"
             id="tab-btn-board"
             aria-selected={drawerTab === 'board'}
+            aria-controls="panel-board"
+            tabIndex={drawerTab === 'board' ? 0 : -1}
             className={`drawer-tab-btn ${drawerTab === 'board' ? 'active' : ''}`}
             onClick={() => setDrawerTab('board')}
           >
@@ -547,6 +587,8 @@ export default function App() {
             role="tab"
             id="tab-btn-camera"
             aria-selected={drawerTab === 'camera'}
+            aria-controls="panel-camera"
+            tabIndex={drawerTab === 'camera' ? 0 : -1}
             className={`drawer-tab-btn ${drawerTab === 'camera' ? 'active' : ''}`}
             onClick={() => setDrawerTab('camera')}
           >
@@ -558,6 +600,8 @@ export default function App() {
             role="tab"
             id="tab-btn-audio"
             aria-selected={drawerTab === 'audio'}
+            aria-controls="panel-audio"
+            tabIndex={drawerTab === 'audio' ? 0 : -1}
             className={`drawer-tab-btn ${drawerTab === 'audio' ? 'active' : ''}`}
             onClick={() => setDrawerTab('audio')}
           >
@@ -571,6 +615,9 @@ export default function App() {
              TAB PANEL 1: GAME (Quick Actions, Match Settings & Move History)
              ========================================================================= */}
           <div
+            id="panel-game"
+            role="tabpanel"
+            aria-labelledby="tab-btn-game"
             className={`drawer-tab-panel ${drawerTab === 'game' ? 'active' : ''}`}
             style={{ display: drawerTab === 'game' ? 'flex' : 'none' }}
           >
@@ -663,7 +710,7 @@ export default function App() {
               {/* Time Control Chips */}
               <div className="menu-setting-group">
                 <div className="menu-setting-label">⏱ {t.timeControl}</div>
-                <div className="menu-chips-grid" role="radiogroup" aria-label={t.timeControl}>
+                <div className="menu-chips-grid" role="radiogroup" aria-label={t.timeControl} onKeyDown={handleRovingKeys}>
                   {[
                     { id: 'rapid_10_0', label: '10 min', sub: t.rapid },
                     { id: 'rapid_15_10', label: '15 | 10', sub: t.rapid },
@@ -710,7 +757,7 @@ export default function App() {
               {/* AI Difficulty Scale Chips */}
               <div className="menu-setting-group">
                 <div className="menu-setting-label">⚔ {t.difficulty}</div>
-                <div className="menu-chips-ladder" role="radiogroup" aria-label={t.difficulty}>
+                <div className="menu-chips-ladder" role="radiogroup" aria-label={t.difficulty} onKeyDown={handleRovingKeys}>
                   {[
                     { id: 'novice', label: t.diffNovice, rating: '~600' },
                     { id: 'beginner', label: t.diffBeginner, rating: '~1000' },
@@ -753,7 +800,7 @@ export default function App() {
               {/* Game Variant Segment Chips */}
               <div className="menu-setting-group">
                 <div className="menu-setting-label">♟ {t.gameVariant}</div>
-                <div className="menu-segments-row" role="radiogroup" aria-label={t.gameVariant}>
+                <div className="menu-segments-row" role="radiogroup" aria-label={t.gameVariant} onKeyDown={handleRovingKeys}>
                   <button
                     type="button"
                     className={`menu-segment-btn ${gameVariant === 'standard' ? 'active' : ''}`}
@@ -780,7 +827,7 @@ export default function App() {
               {/* Promotion Piece Choice */}
               <div className="menu-setting-group">
                 <div className="menu-setting-label">♛ {t.promotionLabel}</div>
-                <div className="menu-segments-row" role="radiogroup" aria-label={t.promotionLabel}>
+                <div className="menu-segments-row" role="radiogroup" aria-label={t.promotionLabel} onKeyDown={handleRovingKeys}>
                   {([
                     { id: 'queen', icon: '♕', label: t.promoQueen },
                     { id: 'rook', icon: '♖', label: t.promoRook },
@@ -908,6 +955,9 @@ export default function App() {
              TAB PANEL 2: BOARD (Tactile Stone Textures & Materials)
              ========================================================================= */}
           <div
+            id="panel-board"
+            role="tabpanel"
+            aria-labelledby="tab-btn-board"
             className={`drawer-tab-panel ${drawerTab === 'board' ? 'active' : ''}`}
             style={{ display: drawerTab === 'board' ? 'flex' : 'none' }}
           >
@@ -933,7 +983,7 @@ export default function App() {
               </select>
 
               {/* Enhanced Gothic Stone Texture Cards */}
-              <div className="stone-texture-chips-wrap" role="radiogroup" aria-label={t.boardTextureLabel}>
+              <div className="stone-texture-chips-wrap" role="radiogroup" aria-label={t.boardTextureLabel} onKeyDown={handleRovingKeys}>
                 <button
                   type="button"
                   className={`stone-chip-btn ${boardStone === 'obsidian' ? 'active' : ''}`}
@@ -992,6 +1042,9 @@ export default function App() {
              TAB PANEL 3: CAMERA (Perspectives & Zoom Control)
              ========================================================================= */}
           <div
+            id="panel-camera"
+            role="tabpanel"
+            aria-labelledby="tab-btn-camera"
             className={`drawer-tab-panel ${drawerTab === 'camera' ? 'active' : ''}`}
             style={{ display: drawerTab === 'camera' ? 'flex' : 'none' }}
           >
@@ -1069,6 +1122,9 @@ export default function App() {
              TAB PANEL 4: AUDIO & INTERFACE (Sound, Language, Keyboard Guide)
              ========================================================================= */}
           <div
+            id="panel-audio"
+            role="tabpanel"
+            aria-labelledby="tab-btn-audio"
             className={`drawer-tab-panel ${drawerTab === 'audio' ? 'active' : ''}`}
             style={{ display: drawerTab === 'audio' ? 'flex' : 'none' }}
           >
@@ -1166,7 +1222,7 @@ export default function App() {
         <div className="captured-pill" id="captured-tray"></div>
       </div>
 
-      <div id="checkmate-overlay" role="status" aria-live="polite">
+      <div id="checkmate-overlay" role="alertdialog" aria-modal="true" aria-labelledby="checkmate-title" aria-describedby="checkmate-subtitle">
         <div className="checkmate-banner">
           <div className="checkmate-ornament">{t.checkmateBannerOrnament}</div>
           <div className="checkmate-crown" id="checkmate-crown">♔</div>
