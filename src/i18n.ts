@@ -154,6 +154,7 @@ export interface Translations {
   hideUiDesc: string;
   volumeLabel: string;
   volumeAriaLabel: string;
+  btnHint: string;
   keyboardShortcuts: string;
 }
 
@@ -302,6 +303,7 @@ export const translations: Record<Language, Translations> = {
     hideUiDesc: 'Hide the interface',
     volumeLabel: 'Volume',
     volumeAriaLabel: 'Set the volume of game sounds',
+    btnHint: 'Hint',
     keyboardShortcuts: 'Keyboard Shortcuts'
   },
   ru: {
@@ -448,6 +450,7 @@ export const translations: Record<Language, Translations> = {
     hideUiDesc: 'Скрыть интерфейс',
     volumeLabel: 'Громкость',
     volumeAriaLabel: 'Настроить громкость звуков игры',
+    btnHint: 'Подсказка',
     keyboardShortcuts: 'Горячие клавиши'
   }
 };

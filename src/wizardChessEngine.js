@@ -882,6 +882,9 @@ export function initWizardChess() {
     scene.add(squareHighlightsGroup);
     const lastMoveHighlightsGroup = new THREE.Group();
     scene.add(lastMoveHighlightsGroup);
+
+    const hintHighlightsGroup = new THREE.Group();
+    scene.add(hintHighlightsGroup);
     const checkLaserGroup = new THREE.Group();
     scene.add(checkLaserGroup);
     let checkLaserAlertLight = null;
@@ -2125,6 +2128,95 @@ export function initWizardChess() {
           positionKeyAfter: entry.positionKeyAfter || null
         })),
         liveSnapshot: captureBoardSnapshot()
+      };
+    }
+
+    // =========================================================================
+    // Hint: quick main-thread search for the current player's best move
+    // =========================================================================
+    let hintTimer = null;
+    const hintTileTexture = (() => {
+      const size = 128;
+      const cvs = document.createElement('canvas');
+      cvs.width = size;
+      cvs.height = size;
+      const ctx = cvs.getContext('2d');
+      ctx.fillStyle = 'rgba(78, 168, 222, 0.30)';
+      ctx.fillRect(0, 0, size, size);
+      ctx.strokeStyle = 'rgba(140, 210, 255, 0.92)';
+      ctx.lineWidth = 6;
+      ctx.strokeRect(3, 3, size - 6, size - 6);
+      ctx.fillStyle = 'rgba(190, 230, 255, 0.95)';
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, 10, 0, Math.PI * 2);
+      ctx.fill();
+      const tex = new THREE.CanvasTexture(cvs);
+      tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+      return tex;
+    })();
+
+    function clearHintHighlight() {
+      if (hintTimer) {
+        clearTimeout(hintTimer);
+        hintTimer = null;
+      }
+      while (hintHighlightsGroup.children.length > 0) {
+        const mesh = hintHighlightsGroup.children[0];
+        hintHighlightsGroup.remove(mesh);
+        if (mesh.material) mesh.material.dispose();
+      }
+    }
+
+    function showHintHighlight(fromR, fromC, toR, toC) {
+      clearHintHighlight();
+      if ([fromR, fromC, toR, toC].some((v) => v == null || v < 0 || v > 7)) return;
+      const sqSize = BOARD_SQ_SIZE * 0.97;
+      const geo = new THREE.PlaneGeometry(sqSize, sqSize);
+      geo.rotateX(-Math.PI / 2);
+      const spots = [[fromC, fromR, 0.8], [toC, toR, 0.94]];
+      for (const [cc, rr, opacity] of spots) {
+        const pos = boardToWorld(rr, cc);
+        const mat = new THREE.MeshBasicMaterial({
+          map: hintTileTexture,
+          transparent: true,
+          opacity,
+          depthWrite: false,
+          side: THREE.DoubleSide
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(pos.x, BOARD_SURFACE_Y + 0.006, pos.z);
+        hintHighlightsGroup.add(mesh);
+      }
+      hintTimer = setTimeout(clearHintHighlight, 6000);
+    }
+
+    function getBestHintMove() {
+      if (gameOver || isAnimatingMove || scriptedGameActive || previewingPly !== null) return null;
+      const state = buildCoreState(currentTurn);
+      let result = null;
+      try {
+        result = coreSearchBestMove(state, { depth: 3, jitter: 0, nodeLimit: 200000 });
+      } catch (e) {
+        return null;
+      }
+      const chosen = coreMoveToEngineMove(result && result.move);
+      if (!chosen || !isEngineLegalMove(currentTurn, chosen)) return null;
+      const legal = coreLegalMoves(state);
+      const coreMove = legal.find((m) =>
+        m.from.r === chosen.fromR && m.from.c === chosen.fromC &&
+        m.to.r === chosen.toR && m.to.c === chosen.toC &&
+        (!chosen.promotion || m.promotion === chosen.promotion)
+      );
+      let san = null;
+      try {
+        if (coreMove) san = coreMoveToSan(state, coreMove, legal);
+      } catch (e) {}
+      showHintHighlight(chosen.fromR, chosen.fromC, chosen.toR, chosen.toC);
+      return {
+        from: coreSquareName(chosen.fromR, chosen.fromC),
+        to: coreSquareName(chosen.toR, chosen.toC),
+        san: san,
+        score: typeof (result && result.score) === 'number' ? result.score : 0
       };
     }
 
@@ -4070,6 +4162,7 @@ export function initWizardChess() {
       const piece = boardState[fromR]?.[fromC];
       if (!piece || isAnimatingMove || gameOver) return false;
       if (piece.color !== currentTurn) return false;
+      clearHintHighlight();
 
       // Pre-move snapshot of the core state — used for SAN generation after
       // the board has been mutated by the animation callback.
@@ -6070,6 +6163,10 @@ export function initWizardChess() {
       resetChessBoard(true, false);
     });
 
+    document.getElementById('btn-hint')?.addEventListener('click', () => {
+      getBestHintMove();
+    });
+
     // =========================================================================
     // Lobby & Director Script Modal Interactions
     // =========================================================================
@@ -6246,6 +6343,7 @@ export function initWizardChess() {
       isSoundEnabled: () => wizardChessAudio.isEnabled(),
       setVolume: (v) => wizardChessAudio.setVolume(v),
       getVolume: () => wizardChessAudio.getVolume(),
+      getBestHintMove,
       wizardChessAudio,
       loadNotation: (pgn, opts) => loadNotationScript(pgn, opts),
       stepScriptForward,
@@ -6950,6 +7048,7 @@ export function initWizardChess() {
       if (engineDisposed) return;
       engineDisposed = true;
       isClockRunning = false;
+      clearHintHighlight();
       if (aiTimer) {
         clearTimeout(aiTimer);
         aiTimer = null;
