@@ -381,7 +381,7 @@ export default function App() {
             <span id="turn-text">{t.turnWhite}</span>
             <span className="mode-badge" id="mode-badge">{t.playingAsWhite}</span>
           </div>
-          <div className="chess-clock-pill" id="chess-clocks" role="timer" aria-label="Chess Clocks">
+          <div className="chess-clock-pill" id="chess-clocks" role="timer" aria-label={t.clocksAriaLabel}>
             <div className="clock-box" id="clock-slot-w" title={t.whiteClockLabel}>
               <span className="clock-badge white">W</span>
               <span className="clock-time" id="clock-time-w">10:00</span>
@@ -585,7 +585,7 @@ export default function App() {
                 <button
                   className="hud-btn"
                   id="btn-side-toggle"
-                  title="Switch between Playing as White and Playing as Black"
+                  title={t.titleSideToggle}
                   onClick={() => setDrawerOpen(false)}
                 >
                   {t.btnPlayAsBlack}
@@ -593,7 +593,7 @@ export default function App() {
                 <button
                   className="hud-btn"
                   id="btn-ai-move"
-                  title="Let the AI make the next move immediately"
+                  title={t.titleAiMove}
                   onClick={() => setDrawerOpen(false)}
                 >
                   {t.btnAiMove}
@@ -601,7 +601,7 @@ export default function App() {
                 <button
                   className="hud-btn"
                   id="btn-reset"
-                  title="Start a fresh game on the altar"
+                  title={t.titleReset}
                   onClick={() => setDrawerOpen(false)}
                 >
                   {t.btnNewGame}
@@ -945,7 +945,7 @@ export default function App() {
                   <span className="stone-swatch swatch-obsidian" aria-hidden="true"></span>
                   <div className="stone-chip-info">
                     <span className="stone-chip-name">{t.textureObsidian}</span>
-                    <span className="stone-chip-desc">Глубокий зеркальный камень с золотыми клетками</span>
+                    <span className="stone-chip-desc">{t.textureObsidianDesc}</span>
                   </div>
                   {boardStone === 'obsidian' && <span className="stone-active-check" aria-hidden="true">✦</span>}
                 </button>
@@ -960,7 +960,7 @@ export default function App() {
                   <span className="stone-swatch swatch-abbey" aria-hidden="true"></span>
                   <div className="stone-chip-info">
                     <span className="stone-chip-name">{t.textureAbbey}</span>
-                    <span className="stone-chip-desc">Резной монастырский известняк с патиной веков</span>
+                    <span className="stone-chip-desc">{t.textureAbbeyDesc}</span>
                   </div>
                   {boardStone === 'weathered_abbey' && <span className="stone-active-check" aria-hidden="true">✦</span>}
                 </button>
@@ -975,7 +975,7 @@ export default function App() {
                   <span className="stone-swatch swatch-mossy" aria-hidden="true"></span>
                   <div className="stone-chip-info">
                     <span className="stone-chip-name">{t.textureMossy}</span>
-                    <span className="stone-chip-desc">Древние руины с изумрудным лесным мхом</span>
+                    <span className="stone-chip-desc">{t.textureMossyDesc}</span>
                   </div>
                   {boardStone === 'mossy_ruin' && <span className="stone-active-check" aria-hidden="true">✦</span>}
                 </button>
@@ -983,7 +983,7 @@ export default function App() {
 
               <div className="stone-material-hint">
                 <span className="hint-icon" aria-hidden="true">✨</span>
-                <span>Физические PBR-материалы: шероховатость, металлический блеск золота и отражения собора пересчитываются в реальном времени.</span>
+                <span>{t.stoneMaterialHint}</span>
               </div>
             </div>
           </div>
@@ -1005,36 +1005,36 @@ export default function App() {
                 <button
                   className="hud-btn active"
                   id="btn-cam-player"
-                  title="Player Camera (Click again to flip White / Black view)"
+                  title={t.titleCamPlayer}
                 >
                   {t.camPlayer}
                 </button>
                 <button
                   className="hud-btn"
                   id="btn-cam-top"
-                  title="Overhead Board View (Click again to flip White / Black orientation)"
+                  title={t.titleCamTop}
                 >
                   {t.camTop}
                 </button>
                 <button
                   className="hud-btn"
                   id="btn-cam-side"
-                  title="Side Profile View (Click again to switch East / West side)"
+                  title={t.titleCamSide}
                 >
                   {t.camSide}
                 </button>
                 <button
                   className="hud-btn"
                   id="btn-cam-wide"
-                  title="Wide Cathedral View (Click again to switch North Rose / South Narthex)"
+                  title={t.titleCamWide}
                 >
                   {t.camWide}
                 </button>
               </div>
 
               <div className="drawer-zoom-wrap">
-                <span className="drawer-zoom-label">Zoom:</span>
-                <div className="cam-zoom-group" role="group" aria-label="Camera Zoom">
+                <span className="drawer-zoom-label">{t.zoomLabel}</span>
+                <div className="cam-zoom-group" role="group" aria-label={t.camZoomGroupLabel}>
                   <button
                     type="button"
                     className="hud-btn zoom-btn"
@@ -1082,7 +1082,7 @@ export default function App() {
                 <button
                   className={`hud-btn ${soundEnabled ? 'active' : ''}`}
                   id="btn-sound-toggle"
-                  title="Toggle Spatial 3D Audio (Mute / Unmute)"
+                  title={t.titleSoundToggle}
                   onClick={handleToggleSound}
                 >
                   {soundEnabled ? t.soundOn : t.soundMuted}
@@ -1091,7 +1091,7 @@ export default function App() {
                 <button
                   className="hud-btn"
                   id="btn-hide-ui"
-                  title="Toggle HUD visibility (Shortcut: H)"
+                  title={t.titleHideUi}
                   onClick={() => setDrawerOpen(false)}
                 >
                   {t.hideUI}
@@ -1132,28 +1132,28 @@ export default function App() {
 
               <div className="keyboard-shortcuts-grid">
                 <div className="shortcut-item">
-                  <kbd>ЛКМ</kbd>
-                  <span>Вращение вокруг доски</span>
+                  <kbd>{t.keyRotLmb}</kbd>
+                  <span>{t.rotDesc}</span>
                 </div>
                 <div className="shortcut-item">
-                  <kbd>ПКМ</kbd>
-                  <span>Панорамирование камеры</span>
+                  <kbd>{t.keyPanRmb}</kbd>
+                  <span>{t.panDesc}</span>
                 </div>
                 <div className="shortcut-item">
-                  <kbd>+ / −</kbd>
-                  <span>Плавное приближение</span>
+                  <kbd>{t.keyZoomKeys}</kbd>
+                  <span>{t.zoomDesc}</span>
                 </div>
                 <div className="shortcut-item">
-                  <kbd>WASD</kbd>
-                  <span>Свободный полёт по собору</span>
+                  <kbd>{t.keyWasd}</kbd>
+                  <span>{t.flyDesc}</span>
                 </div>
                 <div className="shortcut-item">
-                  <kbd>R / F</kbd>
-                  <span>Подъём / Спуск</span>
+                  <kbd>{t.keyRf}</kbd>
+                  <span>{t.liftDesc}</span>
                 </div>
                 <div className="shortcut-item">
-                  <kbd>H</kbd>
-                  <span>Скрыть интерфейс</span>
+                  <kbd>{t.keyH}</kbd>
+                  <span>{t.hideUiDesc}</span>
                 </div>
               </div>
             </div>

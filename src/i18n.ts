@@ -123,6 +123,35 @@ export interface Translations {
   tabCamera: string;
   tabAudio: string;
   quickActions: string;
+  // i18n completeness: formerly hardcoded strings
+  clocksAriaLabel: string;
+  camZoomGroupLabel: string;
+  zoomLabel: string;
+  titleSideToggle: string;
+  titleAiMove: string;
+  titleReset: string;
+  titleCamPlayer: string;
+  titleCamTop: string;
+  titleCamSide: string;
+  titleCamWide: string;
+  titleSoundToggle: string;
+  titleHideUi: string;
+  textureObsidianDesc: string;
+  textureAbbeyDesc: string;
+  textureMossyDesc: string;
+  stoneMaterialHint: string;
+  keyRotLmb: string;
+  rotDesc: string;
+  keyPanRmb: string;
+  panDesc: string;
+  keyZoomKeys: string;
+  zoomDesc: string;
+  keyWasd: string;
+  flyDesc: string;
+  keyRf: string;
+  liftDesc: string;
+  keyH: string;
+  hideUiDesc: string;
   keyboardShortcuts: string;
 }
 
@@ -240,6 +269,35 @@ export const translations: Record<Language, Translations> = {
     tabCamera: 'Camera',
     tabAudio: 'Sound',
     quickActions: 'Quick Actions',
+    // i18n completeness: formerly hardcoded strings
+    clocksAriaLabel: 'Chess clocks',
+    camZoomGroupLabel: 'Camera zoom',
+    zoomLabel: 'Zoom:',
+    titleSideToggle: 'Switch between Playing as White and Playing as Black',
+    titleAiMove: 'Let the AI make the next move immediately',
+    titleReset: 'Start a fresh game on the altar',
+    titleCamPlayer: 'Player Camera (Click again to flip White / Black view)',
+    titleCamTop: 'Overhead Board View (Click again to flip White / Black orientation)',
+    titleCamSide: 'Side Profile View (Click again to switch East / West side)',
+    titleCamWide: 'Wide Cathedral View (Click again to switch North Rose / South Narthex)',
+    titleSoundToggle: 'Toggle Spatial 3D Audio (Mute / Unmute)',
+    titleHideUi: 'Toggle HUD visibility (Shortcut: H)',
+    textureObsidianDesc: 'Deep mirror-black stone with gilded squares',
+    textureAbbeyDesc: 'Carved monastery limestone aged by centuries',
+    textureMossyDesc: 'Ancient ruins with emerald forest moss',
+    stoneMaterialHint: 'Physically-based PBR materials: roughness, golden sheen and cathedral reflections are recomputed in real time.',
+    keyRotLmb: 'LMB',
+    rotDesc: 'Orbit around the board',
+    keyPanRmb: 'RMB',
+    panDesc: 'Pan the camera',
+    keyZoomKeys: '+ / -',
+    zoomDesc: 'Smooth zoom',
+    keyWasd: 'WASD',
+    flyDesc: 'Free flight through the cathedral',
+    keyRf: 'R / F',
+    liftDesc: 'Ascend / Descend',
+    keyH: 'H',
+    hideUiDesc: 'Hide the interface',
     keyboardShortcuts: 'Keyboard Shortcuts'
   },
   ru: {
@@ -355,6 +413,35 @@ export const translations: Record<Language, Translations> = {
     tabCamera: 'Камера',
     tabAudio: 'Звук',
     quickActions: 'Быстрые действия',
+    // i18n completeness: formerly hardcoded strings
+    clocksAriaLabel: 'Шахматные часы',
+    camZoomGroupLabel: 'Масштаб камеры',
+    zoomLabel: 'Масштаб:',
+    titleSideToggle: 'Сменить сторону: игра белыми или чёрными',
+    titleAiMove: 'Пусть ИИ сделает следующий ход',
+    titleReset: 'Начать новую партию на алтаре',
+    titleCamPlayer: 'Камера игрока (повторный клик перевернёт вид к белым или чёрным)',
+    titleCamTop: 'Вид на доску сверху (повторный клик меняет ориентацию к белым или чёрным)',
+    titleCamSide: 'Профильный вид сбоку (повторный клик переключает восточный или западный ракурс)',
+    titleCamWide: 'Панорама собора (повторный клик переключает северную розу или южный нартекс)',
+    titleSoundToggle: 'Переключить объёмный 3D-звук (вкл / выкл)',
+    titleHideUi: 'Переключить видимость интерфейса (клавиша H)',
+    textureObsidianDesc: 'Глубокий зеркальный камень с золотыми клетками',
+    textureAbbeyDesc: 'Резной монастырский известняк с патиной веков',
+    textureMossyDesc: 'Древние руины с изумрудным лесным мхом',
+    stoneMaterialHint: 'Физические PBR-материалы: шероховатость, металлический блеск золота и отражения собора пересчитываются в реальном времени.',
+    keyRotLmb: 'ЛКМ',
+    rotDesc: 'Вращение вокруг доски',
+    keyPanRmb: 'ПКМ',
+    panDesc: 'Панорамирование камеры',
+    keyZoomKeys: '+ / −',
+    zoomDesc: 'Плавное приближение',
+    keyWasd: 'WASD',
+    flyDesc: 'Свободный полёт по собору',
+    keyRf: 'R / F',
+    liftDesc: 'Подъём / Спуск',
+    keyH: 'H',
+    hideUiDesc: 'Скрыть интерфейс',
     keyboardShortcuts: 'Горячие клавиши'
   }
 };
