@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent as ReactChangeEvent, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { onEngineEvent, type WizardChessApi } from './engineBus.ts';
 import {
   getLanguage,
@@ -23,6 +23,14 @@ export default function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [historyExpanded, setHistoryExpanded] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [volume, setVolume] = useState<number>(() => {
+    try {
+      const v = parseFloat(localStorage.getItem('wizard_chess_volume') || '1');
+      return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 1;
+    } catch (e) {
+      return 1;
+    }
+  });
   const [lang, setLang] = useState<Language>(getLanguage());
   const [historyList, setHistoryList] = useState<MoveRow[]>([]);
   const [previewPly, setPreviewPly] = useState<number | null>(null);
@@ -299,6 +307,12 @@ export default function App() {
     } else {
       setSoundEnabled((prev) => !prev);
     }
+  };
+
+  const handleVolumeChange = (e: ReactChangeEvent<HTMLInputElement>) => {
+    const v = Math.min(1, Math.max(0, Number(e.target.value) / 100));
+    setVolume(v);
+    wizardChessRef.current?.setVolume?.(v);
   };
 
   const handleZoomIn = () => {
@@ -1187,6 +1201,22 @@ export default function App() {
                 >
                   🌐 {lang === 'ru' ? 'English (EN)' : 'Русский (RU)'}
                 </button>
+              </div>
+
+              <div className="drawer-volume-row">
+                <span className="drawer-zoom-label">{t.volumeLabel}</span>
+                <input
+                  type="range"
+                  id="volume-slider"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={Math.round(volume * 100)}
+                  onChange={handleVolumeChange}
+                  aria-label={t.volumeAriaLabel}
+                  title={t.volumeLabel}
+                />
+                <span className="drawer-volume-value">{Math.round(volume * 100)}%</span>
               </div>
 
               <div className="drawer-divider" aria-hidden="true"></div>

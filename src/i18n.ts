@@ -152,6 +152,8 @@ export interface Translations {
   liftDesc: string;
   keyH: string;
   hideUiDesc: string;
+  volumeLabel: string;
+  volumeAriaLabel: string;
   keyboardShortcuts: string;
 }
 
@@ -298,6 +300,8 @@ export const translations: Record<Language, Translations> = {
     liftDesc: 'Ascend / Descend',
     keyH: 'H',
     hideUiDesc: 'Hide the interface',
+    volumeLabel: 'Volume',
+    volumeAriaLabel: 'Set the volume of game sounds',
     keyboardShortcuts: 'Keyboard Shortcuts'
   },
   ru: {
@@ -442,6 +446,8 @@ export const translations: Record<Language, Translations> = {
     liftDesc: 'Подъём / Спуск',
     keyH: 'H',
     hideUiDesc: 'Скрыть интерфейс',
+    volumeLabel: 'Громкость',
+    volumeAriaLabel: 'Настроить громкость звуков игры',
     keyboardShortcuts: 'Горячие клавиши'
   }
 };

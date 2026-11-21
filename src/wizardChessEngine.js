@@ -6244,6 +6244,8 @@ export function initWizardChess() {
       toggleUI,
       toggleSound: () => wizardChessAudio.toggleMute(),
       isSoundEnabled: () => wizardChessAudio.isEnabled(),
+      setVolume: (v) => wizardChessAudio.setVolume(v),
+      getVolume: () => wizardChessAudio.getVolume(),
       wizardChessAudio,
       loadNotation: (pgn, opts) => loadNotationScript(pgn, opts),
       stepScriptForward,
