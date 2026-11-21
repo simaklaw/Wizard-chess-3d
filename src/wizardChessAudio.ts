@@ -692,7 +692,6 @@ class WizardChessAudioEngine {
       } catch (e) {}
     }
     this.applyGain();
-    }
     for (const cb of this.onStateChangeCallbacks) {
       cb(!this.isMuted);
     }
