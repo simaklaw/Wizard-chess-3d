@@ -1,5 +1,10 @@
 name: CI
 
+concurrency:
+  # One CI run per ref: superseded pushes cancel the redundant queue entry.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
@@ -30,3 +35,17 @@ jobs:
           done
       - name: Build
         run: npm run build
+      - name: Bundle size budget
+        run: |
+          # Raw (minified) JS in dist/assets. The budget is generous on purpose:
+          # it only catches sudden regressions (a reverted code-split build, an
+          # accidentally duplicated dependency), not normal growth.
+          TOTAL=$(du -cb dist/assets/*.js 2>/dev/null | tail -1 | cut -f1 || echo 0)
+          LIMIT=1400000
+          echo "JS bundle total: $TOTAL bytes (budget: $LIMIT)"
+          if [ -z "$TOTAL" ] || [ "$TOTAL" -eq 0 ]; then
+            echo "::error::No JS assets found in dist/assets"; exit 1
+          fi
+          if [ "$TOTAL" -gt "$LIMIT" ]; then
+            echo "::error::JS bundle ($TOTAL bytes) exceeds the budget ($LIMIT bytes)"; exit 1
+          fi
